@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../state/settings_fn_state.dart';
 import 'account_entry.dart';
@@ -15,10 +19,15 @@ class AuthService {
 
   static final AuthService instance = AuthService._();
 
+  static const String _prefsDeviceId = 'auth_device_id';
+
   final ValueNotifier<AuthStatus> status =
       ValueNotifier<AuthStatus>(AuthStatus.loggedOut);
 
   bool _initialized = false;
+
+  String? _deviceId;
+  String? _cachedDeviceId;
 
   /// 启动时恢复已保存账号的会话。
   Future<void> initialize() async {
@@ -33,6 +42,35 @@ class AuthService {
       status.value = AuthStatus.loggedOut;
     }
     _initialized = true;
+  }
+
+  /// 生成设备 ID（32 位 hex）。
+  static String generateDeviceId() {
+    final Random random = Random();
+    return List<String>.generate(
+      16,
+      (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ).join();
+  }
+
+  /// 获取设备 ID（首次生成并持久化，回退全 0 占位）。
+  String getOrCreateDeviceId() {
+    if (_deviceId != null) return _deviceId!;
+    _deviceId = _cachedDeviceId;
+    if (_deviceId != null) return _deviceId!;
+    // 异步生成；未就绪前先用全 0 占位（参考项目语义）。
+    unawaited(_initDeviceId());
+    return _deviceId ?? '00000000000000000000000000000000';
+  }
+
+  Future<void> _initDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? deviceId = prefs.getString(_prefsDeviceId);
+    if (deviceId == null || deviceId.isEmpty) {
+      deviceId = generateDeviceId();
+      await prefs.setString(_prefsDeviceId, deviceId);
+    }
+    _deviceId = deviceId;
   }
 
   /// 登录并保存账号。
@@ -54,6 +92,7 @@ class AuthService {
       final FnLoginResult result = await ApiClient.instance.login(
         user: user,
         password: password,
+        deviceId: getOrCreateDeviceId(),
       );
       final AccountEntry entry = AccountEntry(
         id: '$serverUrl|$user',

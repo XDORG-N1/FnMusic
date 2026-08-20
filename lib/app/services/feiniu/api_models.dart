@@ -255,9 +255,11 @@ class FnLoginResult {
     final Map<String, Object?> user =
         (data['user'] as Map<Object?, Object?>?)?.cast<String, Object?>() ?? const <String, Object?>{};
     return FnLoginResult(
-      token: data['token'] as String? ?? '',
-      userId: user['userId'] as String? ?? '',
-      name: user['nickname'] as String? ?? user['name'] as String? ?? '',
+      // 真实 FNOS 返回 userToken；mock 返回 token，兼容读取。
+      token: data['userToken'] as String? ?? data['token'] as String? ?? '',
+      // 真实 FNOS 用户标识为 guid；mock 用 userId。
+      userId: user['guid'] as String? ?? user['userId'] as String? ?? '',
+      name: user['name'] as String? ?? user['nickname'] as String? ?? '',
     );
   }
 }

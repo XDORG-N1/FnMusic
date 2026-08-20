@@ -121,7 +121,8 @@ Response _cover(Request req) {
 
 Future<Response> _login(Request req) async {
   final Map<String, Object?> body = await _jsonBody(req);
-  final String? user = body['user'] as String?;
+  // 真实 FNOS 字段为 username；兼容旧契约的 user。
+  final String? user = (body['username'] as String?) ?? (body['user'] as String?);
   final String? password = body['password'] as String?; // 已是 SHA-256
   if (user == null || user.isEmpty || password == null || password.isEmpty) {
     return _err(400, '缺少用户名或密码');
@@ -129,8 +130,10 @@ Future<Response> _login(Request req) async {
   final String digest = sha256.convert(utf8.encode(user)).toString();
   final String token = 'mock-token-${sha256.convert(utf8.encode('$user|$digest')).toString().substring(0, 16)}';
   return _json(<String, Object?>{
-    'token': token,
+    // 与真实 FNOS 对齐：data.userToken + data.user.guid / name。
+    'userToken': token,
     'user': <String, Object?>{
+      'guid': user,
       'userId': user,
       'name': user,
       'nickname': user,

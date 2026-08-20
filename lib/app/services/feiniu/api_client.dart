@@ -120,20 +120,32 @@ class ApiClient {
   }
 
   /// 密码登录。password 为明文，内部做 SHA-256。
+  ///
+  /// 真实 FNOS 要求字段 `username` + `deviceId`（32 位 hex）；缺 deviceId 时
+  /// 用全 0 占位仍可登录（参考项目语义），AuthService 会传入持久化设备号。
   Future<FnLoginResult> login({
     required String user,
     required String password,
+    String deviceId = '00000000000000000000000000000000',
   }) async {
     final String hashed = sha256.convert(utf8.encode(password)).toString();
     final Response<dynamic> resp = await _dio.post<dynamic>(
       '$_baseUrl/user/password-login',
-      data: <String, Object?>{'user': user, 'password': hashed},
+      data: <String, Object?>{
+        'username': user,
+        'password': hashed,
+        'deviceId': deviceId,
+      },
     );
     final ApiResponse<FnLoginResult> result = ApiResponse<FnLoginResult>.fromJson(
       _asMap(resp.data),
       (Object? data) => FnLoginResult.fromJson(_asMap(data)),
     );
     if (!result.isOk) {
+      // 120001：账号或密码错误（服务端 msg 为英文，用户看不懂）。
+      if (result.code == 120001) {
+        throw ApiException(result.code, '用户名或密码错误，请重试！');
+      }
       throw ApiException(result.code, result.message);
     }
     _token = result.data?.token;

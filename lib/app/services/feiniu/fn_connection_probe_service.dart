@@ -270,6 +270,12 @@ class FnConnectionProbeService {
       if (e.type == DioExceptionType.cancel) {
         throw Exception('探测已取消');
       }
+      if (kDebugMode) {
+        debugPrint(
+          '[FnProbe] DioException type=${e.type} message=${e.message} '
+          'error=${e.error}',
+        );
+      }
       throw Exception('连接探测失败：${_dioErrorMessage(e)}');
     } finally {
       isProbing.value = false;

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -32,8 +33,28 @@ class _LifecycleFlushObserver extends WidgetsBindingObserver {
   }
 }
 
+/// 进程级 SSL 证书校验覆盖。
+///
+/// 通过 [HttpOverrides.global] 安装，拦截进程内所有 [HttpClient]
+/// （Dio 默认适配器、探测 Dio、CachedNetworkImage 等）。
+/// [badCertificateCallback] 实时读取 [AppFnConnectionSettings.ignoreSsl]，
+/// 开关动态度生效，无需重启 APP。默认开启以兼容自签名证书 /
+/// 企业网关重签（Sangfor 等）的环境。
+class _SslOverride extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    final client = super.createHttpClient(context);
+    client.badCertificateCallback = (_, _, _) =>
+        AppFnConnectionSettings.ignoreSsl.value;
+    return client;
+  }
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 进程级 SSL 覆盖：必须先于任何网络请求安装（读取 ignoreSsl 偏好）。
+  HttpOverrides.global = _SslOverride();
 
   // Android 15 强制 edge-to-edge。
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
