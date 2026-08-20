@@ -1,0 +1,15 @@
+name: fnmusic_mock_server
+description: "FnMusic 开发用 Mock FNOS 音乐 API 服务器（与真实飞牛 NAS 契约一致）。"
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  shelf: ^1.4.1
+  shelf_router: ^1.1.4
+  crypto: ^3.0.6
+
+dev_dependencies:
+  test: ^1.31.1

@@ -1,0 +1,74 @@
+name: fnmusic
+description: "FnMusic — 飞牛 NAS 音乐客户端（Android 15+）。"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # --- 状态管理 ---
+  signals: ^6.3.0
+  signals_flutter: ^6.3.0
+
+  # --- UI ---
+  dynamic_color: ^1.7.0
+  skeletonizer: ^2.1.3
+  # TODO(P8): shadcn_flutter（miuix 视觉层，依赖 country_flags 需联网解析）
+  # 歌词渲染（vendored 本地插件，纯 Dart，参考项目 plugins/flutter_lyric 3.0.2）
+  flutter_lyric:
+    path: plugins/flutter_lyric
+
+  # --- 网络 ---
+  dio: ^5.4.0
+  connectivity_plus: ^7.3.1
+  shelf: ^1.4.1
+  shelf_router: ^1.1.4
+  webdav_client: ^1.2.2
+
+  # --- 持久化 ---
+  sqflite: ^2.4.2
+  shared_preferences: ^2.3.0
+  path_provider: ^2.1.5
+  path: ^1.9.0
+
+  # --- 媒体缓存 ---
+  cached_network_image: ^3.4.1
+  flutter_cache_manager: ^3.4.1
+
+  # --- 播放引擎（P3）---
+  # just_audio（ExoPlayer 主引擎）+ media_kit（FFmpeg 兜底，FLAC/DSF/异形编码）
+  just_audio: ^0.10.5
+  audio_session: ^0.2.0
+  audio_service: ^0.18.15
+  media_kit: ^1.2.6
+  media_kit_libs_audio: ^1.0.7
+
+  # --- 权限与设备 ---
+  permission_handler: ^12.0.1
+  flutter_displaymode: ^0.7.0
+  url_launcher: ^6.3.1
+
+  # --- 工具 ---
+  crypto: ^3.0.6
+  uuid: ^4.5.0
+  device_info_plus: ^11.0.0
+  intl: ^0.20.0
+  lpinyin: ^2.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
