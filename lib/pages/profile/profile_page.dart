@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/router/app_router.dart';
+import 'listening_report_page.dart';
 import 'listening_stats_page.dart';
 
 /// 「我的」：资料库统计快捷入口 + 设置入口。
@@ -30,6 +31,13 @@ class ProfilePage extends StatelessWidget {
             title: '听歌统计',
             subtitle: '收听时长 · 播放次数 · 热门歌曲',
             onTap: () => Navigator.of(context).pushNamed(ListeningStatsPage.route),
+          ),
+          _ProfileEntry(
+            icon: Icons.auto_awesome,
+            color: scheme.tertiary,
+            title: '听歌报告',
+            subtitle: '年度 / 月度收听可视化报告',
+            onTap: () => Navigator.of(context).pushNamed(ListeningReportPage.route),
           ),
         ],
       ),

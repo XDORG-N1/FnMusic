@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// 应用信息常量（保持与 pubspec.yaml version 一致）。
-abstract class AppInfo {
-  static const String name = 'FnMusic';
-  static const String displayName = '飞牛音乐';
-  static const String version = '1.0.0+1';
-}
+import '../../app/utils/app_info.dart';
 
 /// 关于页：版本、说明与开源声明。
 class AboutPage extends StatelessWidget {

@@ -87,4 +87,12 @@ class AccountStore {
     );
     await prefs.setString(_prefsActive, activeAccountId.value ?? '');
   }
+
+  /// 测试用：清空内存状态（SharedPreferences mock 由测试方重置）。
+  @visibleForTesting
+  void resetForTest() {
+    _loaded = false;
+    accounts.value = <AccountEntry>[];
+    activeAccountId.value = null;
+  }
 }

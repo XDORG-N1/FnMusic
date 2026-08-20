@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/state/settings_state.dart';
 import 'about_page.dart';
+import 'backup_restore_page.dart';
 import 'cache_settings_page.dart';
 import 'lyrics_settings_page.dart';
 import 'permission_settings_page.dart';
@@ -77,6 +78,13 @@ class SettingsPage extends StatelessWidget {
             title: '权限设置',
             subtitle: '通知 / 媒体音频权限申请',
             route: PermissionSettingsPage.route,
+          ),
+          _SectionHeader('数据'),
+          _NavigationTile(
+            icon: Icons.backup_outlined,
+            title: '数据备份',
+            subtitle: '账号 / 听歌统计 / 设置的备份与恢复（本地 + WebDAV）',
+            route: BackupRestorePage.route,
           ),
           _SectionHeader('关于'),
           _NavigationTile(

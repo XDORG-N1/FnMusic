@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app/app.dart';
+import 'app/services/backup/backup_service.dart';
 import 'app/services/listening_recorder_service.dart';
 import 'app/services/media_notification_service.dart';
 import 'app/services/player_service.dart';
@@ -51,6 +52,9 @@ Future<void> main() async {
   // 听歌统计：订阅播放快照；退后台时兜底落库。
   AppPlayerState.instance.snapshot.addListener(_onPlayerSnapshot);
   WidgetsBinding.instance.addObserver(_LifecycleFlushObserver());
+
+  // 自动备份：每天首次打开时向已配置的 WebDAV 目标上传（静默失败）。
+  unawaited(BackupService.instance.maybeAutoBackupOnLaunch());
 
   runApp(const FnMusicApp());
 }

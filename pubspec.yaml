@@ -56,6 +56,9 @@ dependencies:
   flutter_displaymode: ^0.7.0
   url_launcher: ^6.3.1
 
+  # --- 听歌报告（WebView 渲染 HTML）---
+  webview_flutter: ^4.14.1
+
   # --- 工具 ---
   crypto: ^3.0.6
   uuid: ^4.5.0

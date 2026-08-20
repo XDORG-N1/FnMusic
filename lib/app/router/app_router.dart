@@ -9,10 +9,12 @@ import '../../pages/library/genres_page.dart';
 import '../../pages/library/library_page.dart';
 import '../../pages/library/playlists_page.dart';
 import '../../pages/player/player_page.dart';
+import '../../pages/profile/listening_report_page.dart';
 import '../../pages/profile/listening_stats_page.dart';
 import '../../pages/profile/profile_page.dart';
 import '../../pages/search/search_page.dart';
 import '../../pages/settings/about_page.dart';
+import '../../pages/settings/backup_restore_page.dart';
 import '../../pages/settings/cache_settings_page.dart';
 import '../../pages/settings/lyrics_settings_page.dart';
 import '../../pages/settings/permission_settings_page.dart';
@@ -54,9 +56,11 @@ class AppRouter {
         FoldersPage.route: (_) => const FoldersPage(),
         FavoritePage.route: (_) => const FavoritePage(),
         ListeningStatsPage.route: (_) => const ListeningStatsPage(),
+        ListeningReportPage.route: (_) => const ListeningReportPage(),
         CacheSettingsPage.route: (_) => const CacheSettingsPage(),
         PermissionSettingsPage.route: (_) => const PermissionSettingsPage(),
         LyricsSettingsPage.route: (_) => const LyricsSettingsPage(),
+        BackupRestorePage.route: (_) => const BackupRestorePage(),
         AboutPage.route: (_) => const AboutPage(),
       };
 }

@@ -173,6 +173,39 @@ class AppSettingSwitchTile extends StatelessWidget {
   }
 }
 
+/// 可点按设置项（标题 + 副标题 + 前导/尾部图标）。
+class AppSettingTile extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final Widget? leading;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  const AppSettingTile({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.leading,
+    this.trailing,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        leading: leading,
+        title: Text(title),
+        subtitle: subtitle == null ? null : Text(subtitle!),
+        trailing: trailing ?? const Icon(Icons.chevron_right),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
 /// 带标题、数值与滑块的一行设置项。
 class LabeledSlider extends StatelessWidget {
   const LabeledSlider({

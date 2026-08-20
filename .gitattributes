@@ -1,0 +1,6 @@
+# 脚本与源码统一 LF（避免 Windows CRLF 破坏 bash 脚本）。
+*.sh text eol=lf
+*.bat text eol=crlf
+*.dart text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
