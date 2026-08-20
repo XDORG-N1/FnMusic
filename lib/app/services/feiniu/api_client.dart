@@ -2,6 +2,7 @@ import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'dart:convert';
 
+import '../../state/settings_fn_state.dart';
 import 'api_models.dart';
 
 /// FNOS 音乐 API 客户端（Dio 单例）。
@@ -34,6 +35,7 @@ class ApiClient {
 
   String? _baseUrl;
   String? _token;
+  bool _relayMode = false;
 
   /// 当前 API 基础地址（含 `/music/api/v1` 后缀）。
   String? get baseUrl => _baseUrl;
@@ -41,11 +43,35 @@ class ApiClient {
   /// 当前登录 token。
   String? get token => _token;
 
+  /// 是否为中继链接（FN Connect 中继链路）。开启后所有请求额外携带
+  /// `Cookie: mode=relay`，登录请求也以此在中继上通过鉴权。
+  bool get relayMode => _relayMode;
+
+  /// 设置/取消中继模式。
+  void setRelayMode(bool value) {
+    _relayMode = value;
+  }
+
+  /// 已设置安全码时自动携带 x-access-code / x-access-source。
+  Map<String, String> _accessCodeHeaders() {
+    final String? code = AppFnConnectionSettings.accessCode;
+    if (code == null || code.isEmpty) return const <String, String>{};
+    return <String, String>{
+      'x-access-code': base64.encode(utf8.encode(code)),
+      'x-access-source': 'app',
+    };
+  }
+
   void _onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final String? token = _token;
     if (token != null && token.isNotEmpty) {
-      options.headers['Cookie'] = 'music-token=$token';
+      options.headers['Cookie'] = _relayMode
+          ? 'music-token=$token; mode=relay'
+          : 'music-token=$token';
+    } else if (_relayMode) {
+      options.headers['Cookie'] = 'mode=relay';
     }
+    options.headers.addAll(_accessCodeHeaders());
     handler.next(options);
   }
 
@@ -76,11 +102,16 @@ class ApiClient {
     return '$_baseUrl/track/stream?guid=$guid';
   }
 
-  /// 当前会话的鉴权头（Cookie: music-token），供播放器原生请求头注入。
+  /// 当前会话的鉴权头（Cookie: music-token + 中继 + 安全码），供播放器原生请求头注入。
   Map<String, String> authHeaders() {
     final String? token = _token;
-    if (token == null || token.isEmpty) return const <String, String>{};
-    return <String, String>{'Cookie': 'music-token=$token'};
+    return <String, String>{
+      if (token != null && token.isNotEmpty)
+        'Cookie': _relayMode ? 'music-token=$token; mode=relay' : 'music-token=$token'
+      else if (_relayMode)
+        'Cookie': 'mode=relay',
+      ..._accessCodeHeaders(),
+    };
   }
 
   /// 图片下载鉴权头（flutter_cache_manager / audio_service 加载封面时注入）。

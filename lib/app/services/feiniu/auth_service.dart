@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../state/settings_fn_state.dart';
 import 'account_entry.dart';
 import 'account_store.dart';
 import 'api_client.dart';
@@ -35,15 +36,21 @@ class AuthService {
   }
 
   /// 登录并保存账号。
+  ///
+  /// [relayMode] 为 true 时，登录请求及后续所有 API 请求自动携带
+  /// `Cookie: mode=relay`（FN Connect 中继链路）。[fnId] 记录来源 FNID。
   Future<AccountEntry> login({
     required String serverUrl,
     required String user,
     required String password,
     String? displayName,
+    bool relayMode = false,
+    String? fnId,
   }) async {
     status.value = AuthStatus.connecting;
     try {
       ApiClient.instance.setServerUrl(serverUrl);
+      ApiClient.instance.setRelayMode(relayMode);
       final FnLoginResult result = await ApiClient.instance.login(
         user: user,
         password: password,
@@ -54,6 +61,9 @@ class AuthService {
         userName: user,
         displayName: displayName ?? result.name,
         token: result.token,
+        relayMode: relayMode,
+        accessCode: AppFnConnectionSettings.accessCode,
+        fnId: fnId,
       );
       await AccountStore.instance.addAccount(entry);
       await AccountStore.instance.setActiveAccount(entry.id);
@@ -70,6 +80,7 @@ class AuthService {
     await AccountStore.instance.setActiveAccount(account.id);
     if (account.token != null) {
       ApiClient.instance.setServerUrl(account.serverUrl);
+      ApiClient.instance.setRelayMode(account.relayMode);
       ApiClient.instance.setToken(account.token);
       status.value = AuthStatus.loggedIn;
     }
@@ -83,6 +94,7 @@ class AuthService {
       await AccountStore.instance.addAccount(updated);
     }
     ApiClient.instance.setToken(null);
+    ApiClient.instance.setRelayMode(false);
     status.value = AuthStatus.loggedOut;
   }
 }

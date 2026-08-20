@@ -41,11 +41,11 @@ class AccountStore {
     _loaded = true;
   }
 
-  /// 新增账号；已存在同名（serverUrl+userName）则更新。
+  /// 新增账号；已存在同一身份（identityKey）则更新。
   Future<AccountEntry> addAccount(AccountEntry entry) async {
     final List<AccountEntry> list = List<AccountEntry>.from(accounts.value);
     final int index = list.indexWhere(
-      (AccountEntry a) => a.serverUrl == entry.serverUrl && a.userName == entry.userName,
+      (AccountEntry a) => a.identityKey == entry.identityKey,
     );
     if (index >= 0) {
       list[index] = entry;

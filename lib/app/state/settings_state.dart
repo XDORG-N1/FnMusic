@@ -3,9 +3,11 @@ export 'settings_cache_state.dart';
 export 'settings_theme.dart';
 export 'settings_onboarding.dart';
 export 'settings_notification_state.dart';
+export 'settings_fn_state.dart';
 
 import 'player_style_settings.dart';
 import 'settings_cache_state.dart';
+import 'settings_fn_state.dart';
 import 'settings_notification_state.dart';
 import 'settings_onboarding.dart';
 import 'settings_theme.dart';
@@ -25,6 +27,7 @@ abstract class SettingsState {
       PlayerStyleSettings.ensureLoaded(),
       MediaNotificationSettings.ensureLoaded(),
       AppCacheSettings.ensureLoaded(),
+      AppFnConnectionSettings.ensureLoaded(),
     ]);
     _loaded = true;
   }
