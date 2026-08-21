@@ -37,6 +37,10 @@ class ApiClient {
   String? _token;
   bool _relayMode = false;
 
+  /// 收到 401（token 失效）时的回调；由 AuthService 注册，用于把失效会话
+  /// 踢回登录页，避免应用停留在「半登录不可用」状态。
+  void Function()? onUnauthorized;
+
   /// 当前 API 基础地址（含 `/music/api/v1` 后缀）。
   String? get baseUrl => _baseUrl;
 
@@ -76,9 +80,10 @@ class ApiClient {
   }
 
   void _onError(DioException err, ErrorInterceptorHandler handler) {
-    // 401 表示未登录 / token 失效，后续接自动重连与重新登录。
+    // 401 表示未登录 / token 失效：清除内存 token 并通知认证层回退登录页。
     if (err.response?.statusCode == 401) {
       _token = null;
+      onUnauthorized?.call();
     }
     handler.next(err);
   }

@@ -31,6 +31,14 @@ class AuthService {
 
   /// 启动时恢复已保存账号的会话。
   Future<void> initialize() async {
+    // 401（token 失效）→ 登出并回退登录页。注册放在 early-return 之前，
+    // 保证无论何时初始化回调都生效；仅当处于已登录态才触发，避免干扰
+    // 登录中（connecting）或已登出（loggedOut）的其它 401 场景。
+    ApiClient.instance.onUnauthorized = () {
+      if (status.value == AuthStatus.loggedIn) {
+        unawaited(logout());
+      }
+    };
     if (_initialized) return;
     await AccountStore.instance.ensureLoaded();
     final AccountEntry? account = AccountStore.instance.activeAccount;
@@ -129,11 +137,22 @@ class AuthService {
   Future<void> logout() async {
     final AccountEntry? account = AccountStore.instance.activeAccount;
     if (account != null) {
-      final AccountEntry updated = account.copyWith(token: null);
+      // clearToken: 登出必须真正清除持久化的 token，否则重启后 initialize()
+      // 会再次恢复这条已失效的会话（token ?? this.token 无法置 null）。
+      final AccountEntry updated = account.copyWith(clearToken: true);
       await AccountStore.instance.addAccount(updated);
     }
     ApiClient.instance.setToken(null);
     ApiClient.instance.setRelayMode(false);
+    status.value = AuthStatus.loggedOut;
+  }
+
+  /// 测试用：重置内存状态（SharedPreferences mock 由测试方重置）。
+  @visibleForTesting
+  void resetForTest() {
+    _initialized = false;
+    _deviceId = null;
+    _cachedDeviceId = null;
     status.value = AuthStatus.loggedOut;
   }
 }

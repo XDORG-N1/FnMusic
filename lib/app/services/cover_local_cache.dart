@@ -34,6 +34,35 @@ class CoverLocalCache {
     return _dirPath!;
   }
 
+  /// 清空全部封面缓存（媒体通知 / Android Auto / 车载封面共用）。
+  ///
+  /// 必须走 [DefaultCacheManager.emptyCache]：它同时清理索引库与磁盘文件，
+  /// 直接删 `libCachedImageData` 目录会破坏其正打开的 SQLite 库，导致后续
+  /// 所有封面请求抛 DatabaseException，应用呈现「无法使用」。
+  static Future<void> clearArtworkCache() async {
+    try {
+      await _coverCache.emptyCache();
+    } catch (error) {
+      _debugLog('empty cover cache via manager failed: $error');
+    }
+    // 独立回退目录（covers_v2）：仅删内容、保留目录，避免后续写缓存报错。
+    final String? dirPath = _dirPath;
+    if (dirPath == null) return;
+    try {
+      final io.Directory dir = io.Directory(dirPath);
+      if (!await dir.exists()) return;
+      await for (final io.FileSystemEntity e in dir.list(followLinks: false)) {
+        try {
+          await e.delete(recursive: true);
+        } catch (_) {
+          // 单个文件被占用时跳过，不影响整体清理。
+        }
+      }
+    } catch (error) {
+      _debugLog('empty fallback cover dir failed: $error');
+    }
+  }
+
   /// Returns a URI that Android Auto and other external media clients can
   /// safely read. The provider only exposes files produced by this cache.
   static Future<Uri?> contentUriForPath(String? localPath) async {

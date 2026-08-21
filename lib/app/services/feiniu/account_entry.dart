@@ -34,13 +34,15 @@ class AccountEntry {
     bool? relayMode,
     String? Function()? accessCode,
     String? Function()? fnId,
+    // 显式清除 token（`token ?? this.token` 无法把可空字段置 null）。
+    bool clearToken = false,
   }) {
     return AccountEntry(
       id: id,
       serverUrl: serverUrl,
       userName: userName,
       displayName: displayName,
-      token: token ?? this.token,
+      token: clearToken ? null : token ?? this.token,
       relayMode: relayMode ?? this.relayMode,
       accessCode: accessCode != null ? accessCode() : this.accessCode,
       fnId: fnId != null ? fnId() : this.fnId,

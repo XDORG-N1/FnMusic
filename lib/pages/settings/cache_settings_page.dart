@@ -119,11 +119,9 @@ class _CacheSettingsPageState extends State<CacheSettingsPage> {
       return;
     }
     setState(() => _loading = true);
-    final Directory tempDir = await getTemporaryDirectory();
-    await _clearDirContents(
-        Directory(p.join(tempDir.path, CoverLocalCache.kDirName)));
-    await _clearDirContents(
-        Directory(p.join(tempDir.path, kArtworkCacheDirName)));
+    // 走 CoverLocalCache.clearArtworkCache：用 flutter_cache_manager 官方
+    // emptyCache() 同时清索引库与文件，避免直接删目录破坏 SQLite 导致应用异常。
+    await CoverLocalCache.clearArtworkCache();
     if (!mounted) return;
     await _loadCacheSizes();
     _toast('封面缓存已清除');
