@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'api_client.dart';
 import 'api_models.dart';
 
@@ -8,6 +10,10 @@ class FnArtistService {
   static final FnArtistService instance = FnArtistService._();
 
   static const int _pageSize = 100;
+
+  /// 测试钩子：注入后取代真实网络请求（widget 测试用）。
+  @visibleForTesting
+  static Future<List<FnTrack>> Function(String artistGuid)? fetchArtistTracksOverride;
 
   Future<ApiPage<FnArtist>> fetchArtists({int page = 1}) async {
     final dynamic data = await ApiClient.instance.getData(
@@ -23,6 +29,9 @@ class FnArtistService {
 
   /// 歌手曲目。
   Future<List<FnTrack>> fetchArtistTracks(String artistGuid) async {
+    final Future<List<FnTrack>> Function(String)? override =
+        fetchArtistTracksOverride;
+    if (override != null) return override(artistGuid);
     final dynamic data = await ApiClient.instance.getData(
       '/track/artist-detail/list',
       query: <String, Object?>{'guid': artistGuid},

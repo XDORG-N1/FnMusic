@@ -176,6 +176,10 @@ class DraggableScrollbar extends StatelessWidget {
   final ValueChanged<String> onIndexChanged;
   final VoidCallback onDragEnd;
 
+  /// 自定义跳转（网格列表用：`itemExtent` 跳转不适用，由调用方计算行偏移）。
+  /// 提供时替代默认的 `controller.jumpTo(targetIndex * itemExtent)`。
+  final ValueChanged<int>? onScrollRequest;
+
   const DraggableScrollbar({
     super.key,
     required this.controller,
@@ -184,6 +188,7 @@ class DraggableScrollbar extends StatelessWidget {
     required this.getLabel,
     required this.onIndexChanged,
     required this.onDragEnd,
+    this.onScrollRequest,
   });
 
   @override
@@ -262,11 +267,16 @@ class DraggableScrollbar extends StatelessWidget {
     final int targetIndex =
         (fraction * (itemCount - 1)).floor().clamp(0, itemCount - 1);
 
-    if (!controller.hasClients) return;
-    final double maxScroll = controller.position.maxScrollExtent;
-    if (maxScroll <= 0) return;
-    final double offset = (targetIndex * itemExtent).clamp(0.0, maxScroll);
-    controller.jumpTo(offset);
+    final ValueChanged<int>? custom = onScrollRequest;
+    if (custom != null) {
+      custom(targetIndex);
+    } else {
+      if (!controller.hasClients) return;
+      final double maxScroll = controller.position.maxScrollExtent;
+      if (maxScroll <= 0) return;
+      final double offset = (targetIndex * itemExtent).clamp(0.0, maxScroll);
+      controller.jumpTo(offset);
+    }
 
     final String label = getLabel(targetIndex);
     onIndexChanged(label);

@@ -14,12 +14,17 @@ class ArtworkWidget extends StatelessWidget {
     this.size,
     this.borderRadius,
     this.placeholderIcon = Icons.music_note,
+    this.placeholderText,
   });
 
   final String? imageUrl;
   final double? size;
   final BorderRadius? borderRadius;
   final IconData placeholderIcon;
+
+  /// 占位/失败时显示的首字母（无封面图时展示，如专辑名/歌手名首字母）。
+  /// 为空则退回 [placeholderIcon] 图标。
+  final String? placeholderText;
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +59,7 @@ class ArtworkWidget extends StatelessWidget {
     BorderRadius radius,
     ColorScheme scheme,
   ) {
+    final String? text = placeholderText?.trim();
     return Container(
       width: edge,
       height: edge,
@@ -68,7 +74,18 @@ class ArtworkWidget extends StatelessWidget {
           ],
         ),
       ),
-      child: Icon(placeholderIcon, size: edge * 0.42, color: scheme.primary.withValues(alpha: 0.5)),
+      child: (text != null && text.isNotEmpty)
+          ? Center(
+              child: Text(
+                text.substring(0, 1).toUpperCase(),
+                style: TextStyle(
+                  fontSize: edge * 0.4,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.primary.withValues(alpha: 0.6),
+                ),
+              ),
+            )
+          : Icon(placeholderIcon, size: edge * 0.42, color: scheme.primary.withValues(alpha: 0.5)),
     );
   }
 }
