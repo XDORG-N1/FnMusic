@@ -188,6 +188,9 @@ Response _albumList(Request req) {
             'name': a.name,
             'coverId': a.coverId,
             'year': a.year,
+            'trackCount': tracks
+                .where((MockTrack t) => t.albumGuid == a.guid)
+                .length,
           })
       .toList();
   return _json(_pageWrap(list, albums.length, page, pageSize));
@@ -245,7 +248,12 @@ Response _genreTracks(Request req) {
 }
 
 Response _playlistList(Request req) {
-  final List<Object?> list = MockStore.instance.playlists
+  // 与真实 FNOS 一致：data 为分页包裹 {list, total}。
+  final List<MockPlaylist> all = MockStore.instance.playlists;
+  final Map<String, Object?> query = req.url.queryParameters;
+  final int page = _page(query);
+  final int pageSize = _pageSize(query);
+  final List<Object?> list = _paginate(all, page, pageSize)
       .map((MockPlaylist p) => <String, Object?>{
             'guid': p.guid,
             'name': p.name,
@@ -253,7 +261,7 @@ Response _playlistList(Request req) {
             'trackCount': p.trackGuids.length,
           })
       .toList();
-  return _json(list);
+  return _json(_pageWrap(list, all.length, page, pageSize));
 }
 
 Response _playlistTracks(Request req) {
@@ -379,27 +387,40 @@ String _hlsFor(MockTrack track, Request req) {
 
 // ---------- 漫游（随机播放）----------
 
-MockTrack _nextRoamTrack(String deviceId) {
+/// 推进 deviceId 的漫游游标并返回下一首 + 会话 roamId。
+(MockTrack, String) _nextRoamTrack(String deviceId) {
   final MockStore store = MockStore.instance;
   final int cursor = store.roamCursor[deviceId] ?? 0;
   final MockTrack next = tracks[cursor % tracks.length];
   store.roamCursor[deviceId] = cursor + 1;
-  return next;
+  // 与真实 FNOS 一致：roamId 标识同一条漫游链。
+  final String roamId = 'roam_${deviceId}_${cursor}_'
+      '${sha256.convert(utf8.encode('$deviceId|$cursor')).toString().substring(0, 8)}';
+  return (next, roamId);
 }
+
+Map<String, Object?> _roamTrackJson(MockTrack track, String roamId) =>
+    <String, Object?>{'roamId': roamId, 'track': track.toJson()};
 
 Response _roamStart(Request req) {
   final String deviceId = req.url.queryParameters['deviceId'] ?? 'unknown';
-  final MockTrack track = _nextRoamTrack(deviceId);
+  final (MockTrack track, String roamId) = _nextRoamTrack(deviceId);
+  // 真实 FNOS：data.current 必填（roamId + track），next 可选。
   return _json(<String, Object?>{
-    'track': track.toJson(),
-    'relativeRoamId': deviceId,
+    'current': _roamTrackJson(track, roamId),
+    'next': null,
   });
 }
 
 Response _roamNext(Request req) {
   final String deviceId = req.url.queryParameters['deviceId'] ?? 'unknown';
-  final MockTrack track = _nextRoamTrack(deviceId);
-  return _json(<String, Object?>{'track': track.toJson()});
+  final (MockTrack track, String roamId) = _nextRoamTrack(deviceId);
+  // 真实 FNOS：data.next（roamId + track）；previous/current 可缺省。
+  return _json(<String, Object?>{
+    'previous': null,
+    'current': null,
+    'next': _roamTrackJson(track, roamId),
+  });
 }
 
 // ---------- 歌词 ----------
@@ -424,13 +445,18 @@ Response _lyricList(Request req) {
 // ---------- 收藏 ----------
 
 Response _favoriteList(Request req) {
+  // 与真实 FNOS 一致：data 为分页包裹 {list, total}。
   final MockStore store = MockStore.instance;
-  final List<Object?> list = store.favoriteTrackGuids
+  final List<Object?> all = store.favoriteTrackGuids
       .map((String g) => trackByGuid[g])
       .whereType<MockTrack>()
       .map((MockTrack t) => t.toJson())
       .toList();
-  return _json(list);
+  final Map<String, Object?> query = req.url.queryParameters;
+  final int page = _page(query);
+  final int pageSize = _pageSize(query);
+  final List<Object?> list = _paginate(all, page, pageSize);
+  return _json(_pageWrap(list, all.length, page, pageSize));
 }
 
 Future<Response> _favoriteCreate(Request req) async {

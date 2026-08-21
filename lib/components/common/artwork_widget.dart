@@ -1,7 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../app/services/feiniu/api_client.dart';
+
 /// 封面图组件：支持网络图 + 加载占位 / 失败占位。
+///
+/// 自动携带当前账号鉴权头（真实 FNOS 的 `/static/cover` 需要 Cookie
+/// `music-token`，未登录时为空头，mock/公开封面不受影响）。
 class ArtworkWidget extends StatelessWidget {
   const ArtworkWidget({
     super.key,
@@ -31,6 +36,7 @@ class ArtworkWidget extends StatelessWidget {
       borderRadius: radius,
       child: CachedNetworkImage(
         imageUrl: imageUrl!,
+        httpHeaders: ApiClient.imageAuthHeaders(),
         width: edge,
         height: edge,
         fit: BoxFit.cover,

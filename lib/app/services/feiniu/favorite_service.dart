@@ -18,15 +18,27 @@ class FeiNiuFavoriteService {
     return tracks.map((FnTrack t) => t.guid).toSet();
   }
 
-  /// 获取收藏歌曲完整列表（Android Auto「收藏」节点等使用）。
+  /// 获取收藏歌曲完整列表（首页 / 收藏页 / Android Auto 使用）。
+  ///
+  /// 真实 FNOS 返回分页包裹 `{list, total}`；旧 mock/简化响应直接是数组。
+  /// 两种形状都兼容解析。
   Future<List<FnTrack>> fetchFavoriteTracks() async {
     final Object? data = await _api.getData('/favorite-track/list');
-    if (data is! List<Object?>) return <FnTrack>[];
-    return data
+    final List<Object?> raw = _listOf(data);
+    return raw
         .whereType<Map<Object?, Object?>>()
         .map((Map<Object?, Object?> m) =>
             FnTrack.fromJson(m.cast<String, Object?>()))
         .toList();
+  }
+
+  /// 从响应 data 里取出列表：数组直接返回，`{list, total}` 取 list 字段。
+  static List<Object?> _listOf(Object? data) {
+    if (data is List<Object?>) return data;
+    if (data is Map<Object?, Object?>) {
+      return (data['list'] as List<Object?>?) ?? const <Object?>[];
+    }
+    return const <Object?>[];
   }
 
   /// 查询某歌曲是否已收藏（媒体通知收藏按钮状态）。

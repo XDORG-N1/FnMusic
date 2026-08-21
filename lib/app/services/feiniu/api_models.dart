@@ -75,12 +75,21 @@ class FnArtist {
 
 /// 专辑。
 class FnAlbum {
-  const FnAlbum({required this.guid, required this.name, this.coverId, this.year});
+  const FnAlbum({
+    required this.guid,
+    required this.name,
+    this.coverId,
+    this.year,
+    this.trackCount,
+  });
 
   final String guid;
   final String name;
   final String? coverId;
   final int? year;
+
+  /// 专辑内曲目数（真实 FNOS 返回 trackCount；mock/旧数据可为空）。
+  final int? trackCount;
 
   factory FnAlbum.fromJson(Map<String, Object?> json) {
     return FnAlbum(
@@ -88,6 +97,7 @@ class FnAlbum {
       name: json['name'] as String? ?? '',
       coverId: json['coverId'] as String?,
       year: (json['year'] as num?)?.toInt(),
+      trackCount: (json['trackCount'] as num?)?.toInt(),
     );
   }
 }
@@ -224,12 +234,14 @@ class FnPlaylist {
   const FnPlaylist({
     required this.guid,
     required this.name,
+    this.coverId,
     this.createdAt,
     this.trackCount,
   });
 
   final String guid;
   final String name;
+  final String? coverId;
   final int? createdAt;
   final int? trackCount;
 
@@ -237,8 +249,62 @@ class FnPlaylist {
     return FnPlaylist(
       guid: json['guid'] as String? ?? '',
       name: json['name'] as String? ?? '',
+      coverId: json['coverId'] as String?,
       createdAt: (json['createdAt'] as num?)?.toInt(),
       trackCount: (json['trackCount'] as num?)?.toInt(),
+    );
+  }
+}
+
+/// 漫游链中的一首歌（真实 FNOS 返回 roamId + track 包裹）。
+class FnRoamTrack {
+  const FnRoamTrack({required this.roamId, required this.track});
+
+  final String roamId;
+  final FnTrack track;
+
+  factory FnRoamTrack.fromJson(Map<String, Object?> json) {
+    return FnRoamTrack(
+      roamId: json['roamId'] as String? ?? '',
+      track: FnTrack.fromJson(_asMap(json['track'])),
+    );
+  }
+}
+
+/// 漫游起始响应：`data.current`（必填）+ `data.next`（可选）。
+class FnRoamStartResponse {
+  const FnRoamStartResponse({required this.current, this.next});
+
+  final FnRoamTrack current;
+  final FnRoamTrack? next;
+
+  factory FnRoamStartResponse.fromJson(Map<String, Object?> json) {
+    return FnRoamStartResponse(
+      current: FnRoamTrack.fromJson(_asMap(json['current'])),
+      next: json['next'] is Map<Object?, Object?>
+          ? FnRoamTrack.fromJson(_asMap(json['next']))
+          : null,
+    );
+  }
+}
+
+/// 漫游续播响应：`data.next`（可选）。
+class FnRoamNextResponse {
+  const FnRoamNextResponse({this.previous, this.current, this.next});
+
+  final FnRoamTrack? previous;
+  final FnRoamTrack? current;
+  final FnRoamTrack? next;
+
+  factory FnRoamNextResponse.fromJson(Map<String, Object?> json) {
+    FnRoamTrack? parseTrack(Object? key) =>
+        json[key] is Map<Object?, Object?>
+            ? FnRoamTrack.fromJson(_asMap(json[key]))
+            : null;
+    return FnRoamNextResponse(
+      previous: parseTrack('previous'),
+      current: parseTrack('current'),
+      next: parseTrack('next'),
     );
   }
 }
@@ -311,4 +377,12 @@ class FnLyricResponse {
     }
     return const <String, Object?>{};
   }
+}
+
+/// 顶层工具：把 Object? 安全转为 `Map<String, Object?>`（空则返回空 Map）。
+Map<String, Object?> _asMap(Object? data) {
+  if (data is Map<Object?, Object?>) {
+    return data.cast<String, Object?>();
+  }
+  return const <String, Object?>{};
 }

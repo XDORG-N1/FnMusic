@@ -66,6 +66,7 @@ class FnPlayerService {
 
   /// 漫游随机播放。
   String? _roamDeviceId;
+  String? _roamId;
   bool _roaming = false;
 
   // 持久化键。
@@ -293,12 +294,27 @@ class FnPlayerService {
   /// 漫游随机播放：服务端随机推流，播完自动续下一首。
   Future<void> startRoam() async {
     final String deviceId = _roamDeviceId ??= _newRoamDeviceId();
-    final FnTrack track = await ApiClient.instance.roamStart(deviceId);
+    final FnRoamStartResponse response = await ApiClient.instance.roamStart(deviceId);
     _roaming = true;
-    await setQueue(<SongEntity>[SongEntity.fromTrack(track)]);
+    _roamId = response.current.roamId;
+    await setQueue(<SongEntity>[SongEntity.fromTrack(response.current.track)]);
   }
 
-  void stopRoam() => _roaming = false;
+  /// 以漫游模式播放指定歌曲（首页 Hero 用）。
+  ///
+  /// [roamId] 为发起漫游链的会话标识：设定后播完/下一曲走
+  /// `roam-next(deviceId, roamId)` 续播同一条链，避免新开漫游队列。
+  Future<void> playRoamSong(SongEntity song, String deviceId, String roamId) async {
+    _roamDeviceId = deviceId;
+    _roamId = roamId;
+    _roaming = true;
+    await setQueue(<SongEntity>[song]);
+  }
+
+  void stopRoam() {
+    _roaming = false;
+    _roamId = null;
+  }
 
   bool get isRoaming => _roaming;
 
@@ -310,12 +326,20 @@ class FnPlayerService {
   /// 漫游续播：服务端再随机给一首并替换队列。
   Future<void> _roamNext() async {
     final String? deviceId = _roamDeviceId;
+    final String? roamId = _roamId;
     if (deviceId == null) return;
     try {
-      final FnTrack track = await ApiClient.instance.roamNext(deviceId);
+      final FnRoamNextResponse response =
+          await ApiClient.instance.roamNext(deviceId, roamId ?? '');
+      final FnRoamTrack? next = response.next;
+      if (next == null) {
+        _roaming = false;
+        return;
+      }
+      _roamId = next.roamId;
       _q.items
         ..clear()
-        ..add(SongEntity.fromTrack(track));
+        ..add(SongEntity.fromTrack(next.track));
       _q.currentIndex = 0;
       _q.rebuildShuffleOrder();
       await _activateIndex(0, autoplay: true);

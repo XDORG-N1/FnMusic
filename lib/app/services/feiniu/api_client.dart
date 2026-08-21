@@ -221,21 +221,28 @@ class ApiClient {
   }
 
   /// 漫游随机播放：服务端随机返回一首曲目（[deviceId] 标识漫游流会话）。
-  Future<FnTrack> roamStart(String deviceId) async {
+  ///
+  /// 真实 FNOS 响应 `data.current`（含 roamId + track），可选 `data.next`。
+  Future<FnRoamStartResponse> roamStart(String deviceId) async {
     final Object? data = await getData(
       '/track/roam-start',
       query: <String, Object?>{'deviceId': deviceId},
     );
-    return FnTrack.fromJson(_asMap(_asMap(data)['track']));
+    return FnRoamStartResponse.fromJson(_asMap(data));
   }
 
   /// 漫游随机播放：接续 [roamStart] 建立的会话，服务端再随机给一首。
-  Future<FnTrack> roamNext(String deviceId) async {
+  ///
+  /// [relativeRoamId] 为上一首的 roamId，服务端据此推进同一条漫游链。
+  Future<FnRoamNextResponse> roamNext(String deviceId, String relativeRoamId) async {
     final Object? data = await getData(
       '/track/roam-next',
-      query: <String, Object?>{'deviceId': deviceId},
+      query: <String, Object?>{
+        'deviceId': deviceId,
+        'relativeRoamId': relativeRoamId,
+      },
     );
-    return FnTrack.fromJson(_asMap(_asMap(data)['track']));
+    return FnRoamNextResponse.fromJson(_asMap(data));
   }
 
   /// 获取曲目歌词列表（FNOS `/lyric/list`）。

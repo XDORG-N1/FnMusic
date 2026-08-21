@@ -9,10 +9,15 @@ class FnAlbumService {
 
   static const int _pageSize = 100;
 
-  Future<ApiPage<FnAlbum>> fetchAlbums({int page = 1}) async {
+  /// 分页获取专辑。真实 FNOS 支持 `sort`（如 `newTrackAddedAt,desc` 最新添加）。
+  Future<ApiPage<FnAlbum>> fetchAlbums({int page = 1, String? sort}) async {
     final dynamic data = await ApiClient.instance.getData(
       '/album/list',
-      query: <String, Object?>{'page': page, 'pageSize': _pageSize},
+      query: <String, Object?>{
+        'page': page,
+        'pageSize': _pageSize,
+        'sort': ?sort,
+      },
     );
     return ApiPage<FnAlbum>.fromJson(
       (data as Map<Object?, Object?>).cast<String, Object?>(),

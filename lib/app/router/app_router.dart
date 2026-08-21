@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../components/player/mini_player/mini_player_bar.dart';
 import '../../pages/home/favorite_page.dart';
 import '../../pages/home/home_page.dart';
+import '../../pages/home/recent_page.dart';
 import '../../pages/library/albums_page.dart';
 import '../../pages/library/artists_page.dart';
 import '../../pages/library/folders_page.dart';
@@ -55,6 +56,7 @@ class AppRouter {
         PlaylistsPage.route: (_) => const PlaylistsPage(),
         FoldersPage.route: (_) => const FoldersPage(),
         FavoritePage.route: (_) => const FavoritePage(),
+        RecentPage.route: (_) => const RecentPage(),
         ListeningStatsPage.route: (_) => const ListeningStatsPage(),
         ListeningReportPage.route: (_) => const ListeningReportPage(),
         CacheSettingsPage.route: (_) => const CacheSettingsPage(),

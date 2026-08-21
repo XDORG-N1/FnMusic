@@ -64,7 +64,7 @@ void main() {
     );
     expect(r.$1, 200);
     expect(r.$2['code'], 0);
-    return dataOf(r)['token']! as String;
+    return dataOf(r)['userToken']! as String;
   }
 
   group('鉴权', () {
@@ -129,21 +129,31 @@ void main() {
   });
 
   group('漫游随机播放', () {
+    Map<String, Object?> currentOf(Map<String, Object?> r) =>
+        (r['current'] as Map<Object?, Object?>).cast<String, Object?>();
+
+    Map<String, Object?> nextOf(Map<String, Object?> r) =>
+        (r['next'] as Map<Object?, Object?>).cast<String, Object?>();
+
     test('会话按 deviceId 推进且曲目不重复', () async {
       final String token = await loginToken();
 
       final (int, Map<String, Object?>) start =
           await call('GET', '/track/roam-start?deviceId=dev-1', headers: auth(token));
-      final Map<String, Object?> startData = dataOf(start);
-      expect(startData['relativeRoamId'], 'dev-1');
+      final Map<String, Object?> current = currentOf(dataOf(start));
+      expect(current['roamId'], isNotEmpty);
       final Map<String, Object?> firstTrack =
-          startData['track']! as Map<String, Object?>;
+          current['track']! as Map<String, Object?>;
       final String firstGuid = firstTrack['guid']! as String;
+      final String firstRoamId = current['roamId']! as String;
 
-      final (int, Map<String, Object?>) next =
-          await call('GET', '/track/roam-next?deviceId=dev-1', headers: auth(token));
+      final (int, Map<String, Object?>) next = await call(
+        'GET',
+        '/track/roam-next?deviceId=dev-1&relativeRoamId=$firstRoamId',
+        headers: auth(token),
+      );
       final Map<String, Object?> nextTrack =
-          dataOf(next)['track']! as Map<String, Object?>;
+          nextOf(dataOf(next))['track']! as Map<String, Object?>;
       expect(nextTrack['guid'], isNot(firstGuid));
     });
 
@@ -166,8 +176,8 @@ void main() {
         headers: auth(token),
       );
       // dev-a 已推进到第二首；dev-b 独立从第一首开始（两条会话互不影响）。
-      expect(dataOf(a2)['track'], isNot(dataOf(a1)['track']));
-      expect(dataOf(b1)['track'], dataOf(a1)['track']);
+      expect(currentOf(dataOf(a2))['track'], isNot(currentOf(dataOf(a1))['track']));
+      expect(currentOf(dataOf(b1))['track'], currentOf(dataOf(a1))['track']);
     });
   });
 }
