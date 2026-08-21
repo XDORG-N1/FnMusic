@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/services/feiniu/feiniu_services.dart';
+import '../../app/services/player_service.dart';
 import '../../app/state/song_state.dart';
 import '../../components/list/media_list_tile.dart';
 import '../library/library_detail_pages.dart';
@@ -111,7 +112,13 @@ class _SearchPageState extends State<SearchPage> {
                 title: song.title,
                 subtitle: song.artistDisplay,
                 trailing: Text(song.durationDisplay),
-                onTap: () {},
+                onTap: () {
+                  final List<SongEntity> songs = _tracks;
+                  if (songs.isEmpty) return;
+                  FnPlayerService.instance
+                      .setQueue(songs, index: _tracks.indexOf(song))
+                      .then((_) => FnPlayerService.instance.play());
+                },
               )),
         ],
         if (_albums.isNotEmpty) ...<Widget>[

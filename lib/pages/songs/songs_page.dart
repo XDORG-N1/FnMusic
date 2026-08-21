@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/services/feiniu/feiniu_services.dart';
+import '../../app/services/player_service.dart';
 import '../../app/state/song_state.dart';
 import '../../app/utils/natural_sort.dart';
 import '../../components/list/media_list_tile.dart';
@@ -43,6 +44,14 @@ class _SongsPageState extends State<SongsPage> {
     if (_scrollController.position.extentAfter < 400) {
       _loadMore();
     }
+  }
+
+  /// 点按歌曲：以当前排序结果作为队列，从该曲开始播放。
+  Future<void> _playAt(int index) async {
+    final List<SongEntity> songs = _sorted;
+    if (songs.isEmpty) return;
+    await FnPlayerService.instance.setQueue(songs, index: index);
+    await FnPlayerService.instance.play();
   }
 
   Future<void> _loadMore() async {
@@ -120,9 +129,7 @@ class _SongsPageState extends State<SongsPage> {
                     song.durationDisplay,
                     style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
                   ),
-                  onTap: () {
-                    // 播放逻辑接入 P3。
-                  },
+                  onTap: () => _playAt(index),
                 );
               },
             ),

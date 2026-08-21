@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import 'app/app.dart';
 import 'app/services/backup/backup_service.dart';
+import 'app/services/feiniu/auth_service.dart';
 import 'app/services/listening_recorder_service.dart';
 import 'app/services/media_notification_service.dart';
 import 'app/services/player_service.dart';
@@ -61,6 +62,11 @@ Future<void> main() async {
 
   // 加载全部设置域（主题 / 引导状态等）。
   await SettingsState.loadAll();
+
+  // 先恢复已保存账号的会话（幂等）：只有登录后才配置 ApiClient 的服务器
+  // 地址与 token。播放器 init 内部的 restore() 需要 baseUrl 才能重建流，
+  // 若顺序颠倒，持久化队列存在时会在 _buildAudioSource 抛「未配置服务器地址」。
+  await AuthService.instance.initialize();
 
   // 播放器：配置音频焦点 + 恢复上次播放状态。
   await FnPlayerService.instance.init();

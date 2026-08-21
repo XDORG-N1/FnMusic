@@ -69,7 +69,11 @@ class StreamCacheService {
     Duration? start,
     Duration? end,
   }) async {
-    final String? cachePath = await cachedKeyFor(song);
+    // 缓存关闭时直接走在线流，避免无谓的文件系统探测。
+    String? cachePath;
+    if (enabled) {
+      cachePath = await cachedKeyFor(song);
+    }
     if (cachePath != null) {
       return PlayerSource(uri: cachePath, start: start, end: end);
     }

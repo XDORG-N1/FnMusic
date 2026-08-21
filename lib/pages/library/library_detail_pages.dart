@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/services/feiniu/feiniu_services.dart';
+import '../../app/services/player_service.dart';
 import '../../app/state/song_state.dart';
 import '../../components/list/media_list_tile.dart';
 
@@ -64,7 +65,13 @@ class _AlbumDetailPageState extends State<AlbumDetailPage> {
                       title: '${index + 1}  ${song.title}',
                       subtitle: song.artistDisplay,
                       trailing: Text(song.durationDisplay),
-                      onTap: () {},
+                      onTap: () {
+                        final List<SongEntity> songs = _tracks;
+                        if (songs.isEmpty) return;
+                        FnPlayerService.instance
+                            .setQueue(songs, index: index)
+                            .then((_) => FnPlayerService.instance.play());
+                      },
                     );
                   },
                 ),
@@ -128,7 +135,13 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
                       title: song.title,
                       subtitle: song.albumDisplay,
                       trailing: Text(song.durationDisplay),
-                      onTap: () {},
+                      onTap: () {
+                        final List<SongEntity> songs = _tracks;
+                        if (songs.isEmpty) return;
+                        FnPlayerService.instance
+                            .setQueue(songs, index: index)
+                            .then((_) => FnPlayerService.instance.play());
+                      },
                     );
                   },
                 ),

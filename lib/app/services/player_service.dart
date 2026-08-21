@@ -43,8 +43,8 @@ class FnPlayerService {
 
   // ---------- 引擎 ----------
 
-  final JustAudioEngine _justAudio = JustAudioEngine();
-  final MediaKitEngine _mediaKit = MediaKitEngine();
+  PlayerEngine _justAudio = JustAudioEngine();
+  PlayerEngine _mediaKit = MediaKitEngine();
   late PlayerEngine _active = _justAudio; // init() 后通常为 _justAudio
 
   // ---------- 逻辑状态 ----------
@@ -90,6 +90,39 @@ class FnPlayerService {
     _wireEngine(_mediaKit);
     await _activateAudioSession();
     await restore();
+  }
+
+  /// 测试用：替换引擎实现，避免在测试环境初始化真实音频插件。
+  @visibleForTesting
+  void overrideEnginesForTest(PlayerEngine main, PlayerEngine fallback) {
+    _justAudio = main;
+    _mediaKit = fallback;
+    _active = main;
+  }
+
+  /// 测试用：重置内部播放状态（队列 / 播放标记 / 睡眠定时 / 漫游），
+  /// 供 widget 测试用例间隔离。
+  @visibleForTesting
+  void resetForTest() {
+    _q = PlaybackQueue()..mode = _state.playbackMode.value;
+    _playing = false;
+    _interrupted = false;
+    _fallbackTried = false;
+    _transcodeGuid = null;
+    _roaming = false;
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    _sleepEndsAt = null;
+  }
+
+  /// 测试用：直接填充逻辑队列与 UI 状态，不触发引擎加载 / 网络 / 插件调用。
+  @visibleForTesting
+  void setQueueForTest(List<SongEntity> songs, {int index = 0}) {
+    if (songs.isEmpty) return;
+    _q.replace(songs, startIndex: index);
+    AppPlayerState.instance.queue.value = List<SongEntity>.of(songs);
+    AppPlayerState.instance.currentIndex.value = index;
+    AppPlayerState.instance.currentSong.value = songs[index];
   }
 
   /// 设置队列并播放 [index] 对应的歌曲。
@@ -387,6 +420,14 @@ class FnPlayerService {
 
     _q = restored;
     _state.playbackMode.value = restored.mode;
+
+    // 服务器地址尚未配置（未登录 / ApiClient 未初始化）：只把持久化队列
+    // 恢复到 UI 状态，不触发网络加载，避免 _buildAudioSource 抛异常。
+    if (ApiClient.instance.baseUrl == null) {
+      _emitSnapshot();
+      return;
+    }
+
     final int positionMs = prefs.getInt(_prefPositionMs) ?? 0;
     final bool wasPlaying = prefs.getBool(_prefWasPlaying) ?? false;
 
@@ -744,8 +785,9 @@ class FnPlayerService {
 
   void _emitSnapshot() {
     final AppPlayerState s = _state;
+    final SongEntity? song = currentSong;
     s.snapshot.value = PlayerSnapshot(
-      song: currentSong,
+      song: song,
       queue: List<SongEntity>.unmodifiable(_q.items),
       index: _q.currentIndex,
       isPlaying: _playing,
@@ -754,5 +796,17 @@ class FnPlayerService {
       duration: s.duration.value,
       bufferedPosition: s.bufferedPosition.value,
     );
+    // 同步粗粒度 notifier：真实播放链路（play/next/skipTo/restore/回退）只
+    // 更新内部队列与 snapshot，而迷你播放器可见性、播放器页标题等 UI 直接
+    // 监听这些 notifier（见 _initListeners 的镜像）。本方法会被 position tick
+    // 高频调用，因此对每次赋值做值比较，避免高频重建。
+    if (!identical(s.currentSong.value, song)) s.currentSong.value = song;
+    if (s.currentIndex.value != _q.currentIndex) {
+      s.currentIndex.value = _q.currentIndex;
+    }
+    if (!listEquals(s.queue.value, _q.items)) {
+      s.queue.value = List<SongEntity>.of(_q.items);
+    }
+    if (s.isPlaying.value != _playing) s.isPlaying.value = _playing;
   }
 }

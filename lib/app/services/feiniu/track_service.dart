@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'api_client.dart';
 import 'api_models.dart';
 
@@ -9,8 +11,15 @@ class FnTrackService {
 
   static const int _pageSize = 100;
 
+  /// 测试钩子：注入后取代真实网络请求（widget 测试用）。
+  @visibleForTesting
+  static Future<ApiPage<FnTrack>> Function(int page)? fetchOverride;
+
   /// 分页获取全部曲目。
   Future<ApiPage<FnTrack>> fetchTracks({int page = 1, String? sort}) async {
+    final Future<ApiPage<FnTrack>> Function(int)? override =
+        fetchOverride;
+    if (override != null) return override(page);
     final dynamic data = await ApiClient.instance.getData(
       '/track/list',
       query: <String, Object?>{

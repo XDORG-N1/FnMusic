@@ -462,6 +462,7 @@ class BottomActions extends StatelessWidget {
                 ),
             ],
           ),
+          _SpeedMenu(player: player),
           IconButton(
             icon: Icon(Icons.format_list_bulleted, color: iconColor),
             onPressed: () => showPlayerPlaylistSheet(context, player),
@@ -485,6 +486,61 @@ class BottomActions extends StatelessWidget {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => _SleepTimerSheet(player: player),
+    );
+  }
+}
+
+/// 播放倍速按钮：点击弹出倍速菜单，当前倍速打勾。
+class _SpeedMenu extends StatelessWidget {
+  final FnPlayerService player;
+
+  const _SpeedMenu({required this.player});
+
+  static const List<double> _options = <double>[0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+
+  /// 倍速文本：`1.0` → `1×`，`1.25` → `1.25×`。
+  static String _label(double speed) {
+    final String t = speed.toString();
+    final String trimmed =
+        t.endsWith('.0') ? t.substring(0, t.length - 2) : t;
+    return '$trimmed×';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final Color iconColor = scheme.onSurfaceVariant.withValues(alpha: 0.85);
+    final double current = AppPlayerState.instance.speed.value;
+    return PopupMenuButton<double>(
+      tooltip: '播放倍速',
+      onSelected: player.setSpeed,
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<double>>[
+        for (final double s in _options)
+          PopupMenuItem<double>(
+            value: s,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Text(_label(s)),
+                if (current == s)
+                  Icon(Icons.check, size: 18, color: scheme.primary),
+              ],
+            ),
+          ),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        child: Watch.builder(
+          builder: (context) => Text(
+            _label(AppPlayerState.instance.speedSignal.value),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: iconColor,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

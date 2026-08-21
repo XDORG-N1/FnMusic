@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/services/feiniu/feiniu_services.dart';
+import '../../app/services/player_service.dart';
 import '../../app/state/song_state.dart';
 import '../../app/utils/natural_sort.dart';
 import '../../components/list/media_list_tile.dart';
@@ -139,7 +140,13 @@ class _GenreDetailPageState extends State<GenreDetailPage> {
                         song.durationDisplay,
                         style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
                       ),
-                      onTap: () {},
+                      onTap: () {
+                        final List<SongEntity> songs = _tracks;
+                        if (songs.isEmpty) return;
+                        FnPlayerService.instance
+                            .setQueue(songs, index: index)
+                            .then((_) => FnPlayerService.instance.play());
+                      },
                     );
                   },
                 ),
