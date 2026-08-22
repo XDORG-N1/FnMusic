@@ -705,8 +705,8 @@ class _FnMusicAudioHandler extends BaseAudioHandler
 
   Future<List<SongEntity>> _loadSearchSongs(String query) async {
     await _ensureApiAuth();
-    final tracks = await FnSearchService.instance.searchTracks(query);
-    return tracks.map(SongEntity.fromTrack).toList();
+    final trackPage = await FnSearchService.instance.searchTracks(query);
+    return trackPage.list.map(SongEntity.fromTrack).toList();
   }
 
   Future<void> _ensureApiAuth() {

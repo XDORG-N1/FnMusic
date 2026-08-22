@@ -510,6 +510,7 @@ Future<Response> _eventReport(Request req) async {
 
 // ---------- 搜索 ----------
 
+/// 搜索接口与真实 FNOS 一致：`data` 为分页结构 `{list, total}`（非裸数组）。
 Response _searchTrack(Request req) {
   final String q = req.url.queryParameters['q'] ?? '';
   final List<Object?> list = tracks
@@ -518,7 +519,7 @@ Response _searchTrack(Request req) {
           t.artistGuids.any((String g) => artistByGuid[g]!.name.contains(q)))
       .map((MockTrack t) => t.toJson())
       .toList();
-  return _json(list);
+  return _json(<String, Object?>{'list': list, 'total': list.length});
 }
 
 Response _searchAlbum(Request req) {
@@ -532,7 +533,7 @@ Response _searchAlbum(Request req) {
             'year': a.year,
           })
       .toList();
-  return _json(list);
+  return _json(<String, Object?>{'list': list, 'total': list.length});
 }
 
 Response _searchArtist(Request req) {
@@ -545,5 +546,5 @@ Response _searchArtist(Request req) {
             'coverId': a.coverId,
           })
       .toList();
-  return _json(list);
+  return _json(<String, Object?>{'list': list, 'total': list.length});
 }

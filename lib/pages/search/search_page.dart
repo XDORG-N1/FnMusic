@@ -34,16 +34,20 @@ class _SearchPageState extends State<SearchPage> {
       _error = null;
     });
     try {
-      final List<SongEntity> tracks = (await FnSearchService.instance.searchTracks(keyword))
+      final ApiPage<FnTrack> trackPage =
+          await FnSearchService.instance.searchTracks(keyword);
+      final List<SongEntity> tracks = trackPage.list
           .map(SongEntity.fromTrack)
           .toList();
-      final List<FnAlbum> albums = await FnSearchService.instance.searchAlbums(keyword);
-      final List<FnArtist> artists = await FnSearchService.instance.searchArtists(keyword);
+      final ApiPage<FnAlbum> albumPage =
+          await FnSearchService.instance.searchAlbums(keyword);
+      final ApiPage<FnArtist> artistPage =
+          await FnSearchService.instance.searchArtists(keyword);
       if (!mounted) return;
       setState(() {
         _tracks = tracks;
-        _albums = albums;
-        _artists = artists;
+        _albums = albumPage.list;
+        _artists = artistPage.list;
       });
     } catch (e) {
       if (mounted) setState(() => _error = '$e');

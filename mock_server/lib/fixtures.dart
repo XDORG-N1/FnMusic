@@ -150,6 +150,8 @@ final List<MockTrack> tracks = <MockTrack>[
   const MockTrack('trk_010', '远山', 'alb_002', ['art_002'], 256000, 'flac', 'flac', ['gen_002'], 'cov_002', 2),
   const MockTrack('trk_011', '海风', 'alb_002', ['art_001'], 198000, 'mp3', 'mp3', ['gen_001'], 'cov_002', 3),
   const MockTrack('trk_012', '夜航', 'alb_003', ['art_004'], 274000, 'flac', 'flac', ['gen_003'], 'cov_003', 3),
+  // 纯 ASCII 标题，方便 adb shell input text 输入搜索关键词验证。
+  const MockTrack('trk_013', 'Demo Song', 'alb_003', ['art_005'], 180000, 'flac', 'flac', ['gen_001'], 'cov_003', 4),
 ];
 
 final Map<String, MockTrack> trackByGuid = <String, MockTrack>{
