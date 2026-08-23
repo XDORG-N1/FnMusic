@@ -199,11 +199,12 @@ Response _albumList(Request req) {
 Response _albumTracks(Request req) {
   final String? guid = req.url.queryParameters['guid'];
   if (guid == null) return _err(400, '缺少 guid');
+  // 与真实 FNOS 一致：data 为分页包裹 {list, total}。
   final List<Object?> list = tracks
       .where((MockTrack t) => t.albumGuid == guid)
       .map((MockTrack t) => t.toJson())
       .toList();
-  return _json(list);
+  return _json(_pageWrap(list, list.length, 1, list.length));
 }
 
 Response _artistList(Request req) {
@@ -223,28 +224,31 @@ Response _artistList(Request req) {
 Response _artistTracks(Request req) {
   final String? guid = req.url.queryParameters['guid'];
   if (guid == null) return _err(400, '缺少 guid');
+  // 与真实 FNOS 一致：data 为分页包裹 {list, total}。
   final List<Object?> list = tracks
       .where((MockTrack t) => t.artistGuids.contains(guid))
       .map((MockTrack t) => t.toJson())
       .toList();
-  return _json(list);
+  return _json(_pageWrap(list, list.length, 1, list.length));
 }
 
 Response _genreList(Request req) {
+  // 与真实 FNOS 一致：data 为分页包裹 {list, total}。
   final List<Object?> list = genres
       .map((MockGenre g) => <String, Object?>{'guid': g.guid, 'name': g.name})
       .toList();
-  return _json(list);
+  return _json(_pageWrap(list, list.length, 1, list.length));
 }
 
 Response _genreTracks(Request req) {
   final String? guid = req.url.queryParameters['guid'];
   if (guid == null) return _err(400, '缺少 guid');
+  // 与真实 FNOS 一致：data 为分页包裹 {list, total}。
   final List<Object?> list = tracks
       .where((MockTrack t) => t.genreGuids.contains(guid))
       .map((MockTrack t) => t.toJson())
       .toList();
-  return _json(list);
+  return _json(_pageWrap(list, list.length, 1, list.length));
 }
 
 Response _playlistList(Request req) {
@@ -276,7 +280,8 @@ Response _playlistTracks(Request req) {
       .whereType<MockTrack>()
       .map((MockTrack t) => t.toJson())
       .toList();
-  return _json(list);
+  // 与真实 FNOS 一致：data 为分页包裹 {list, total}。
+  return _json(_pageWrap(list, list.length, 1, list.length));
 }
 
 Future<Response> _playlistCreate(Request req) async {

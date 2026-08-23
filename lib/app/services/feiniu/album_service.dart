@@ -54,7 +54,7 @@ class FnAlbumService {
   }
 
   static List<FnTrack> _parseTracks(dynamic data) {
-    final List<Object?> raw = (data as List<Object?>?) ?? const <Object?>[];
+    final List<Object?> raw = listItemsOf(data);
     return raw
         .whereType<Map<Object?, Object?>>()
         .map((Map<Object?, Object?> m) =>

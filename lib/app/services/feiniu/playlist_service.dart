@@ -13,21 +13,12 @@ class FnPlaylistService {
   /// 两种形状都兼容解析。
   Future<List<FnPlaylist>> fetchPlaylists() async {
     final dynamic data = await ApiClient.instance.getData('/playlist/list');
-    final List<Object?> raw = _listOf(data);
+    final List<Object?> raw = listItemsOf(data);
     return raw
         .whereType<Map<Object?, Object?>>()
         .map((Map<Object?, Object?> m) =>
             FnPlaylist.fromJson(m.cast<String, Object?>()))
         .toList();
-  }
-
-  /// 从响应 data 里取出列表：数组直接返回，`{list, total}` 取 list 字段。
-  static List<Object?> _listOf(dynamic data) {
-    if (data is List<Object?>) return data;
-    if (data is Map<Object?, Object?>) {
-      return (data['list'] as List<Object?>?) ?? const <Object?>[];
-    }
-    return const <Object?>[];
   }
 
   /// 歌单内曲目。
@@ -36,7 +27,7 @@ class FnPlaylistService {
       '/track/playlist-detail/list',
       query: <String, Object?>{'guid': playlistGuid},
     );
-    final List<Object?> raw = (data as List<Object?>?) ?? const <Object?>[];
+    final List<Object?> raw = listItemsOf(data);
     return raw
         .whereType<Map<Object?, Object?>>()
         .map((Map<Object?, Object?> m) =>

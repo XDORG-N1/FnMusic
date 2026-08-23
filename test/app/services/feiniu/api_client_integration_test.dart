@@ -3,6 +3,8 @@ import 'package:dio/dio.dart';
 
 import 'package:fnmusic/app/services/feiniu/api_client.dart';
 import 'package:fnmusic/app/services/feiniu/api_models.dart';
+import 'package:fnmusic/app/services/feiniu/album_service.dart';
+import 'package:fnmusic/app/services/feiniu/artist_service.dart';
 
 /// 集成测试：依赖本机运行的 mock FNOS 服务器（端口 8818）。
 /// 服务器未运行时自动跳过。
@@ -42,5 +44,27 @@ void main() {
     );
     expect(page.list, isNotEmpty);
     expect(page.list.first.guid, isNotEmpty);
+  });
+
+  test('专辑 / 歌手详情曲目：分页响应 `{list,total}` 解析不再 TypeError', () async {
+    final bool up = await serverUp();
+    if (!up) {
+      markTestSkipped('mock 服务器未运行（dart run mock_server/bin/server.dart --port 8818）');
+      return;
+    }
+
+    final ApiClient client = ApiClient.instance;
+    client.setServerUrl(baseUrl);
+    await client.login(user: 'admin', password: 'admin');
+
+    // mock 已按真实 FNOS 对齐为分页包裹 `{list,total}`，旧实现按裸 List 强转会抛 TypeError。
+    final List<FnTrack> albumTracks =
+        await FnAlbumService.instance.fetchAlbumTracks('alb_001');
+    expect(albumTracks, isNotEmpty);
+    expect(albumTracks.first.guid, isNotEmpty);
+
+    final List<FnTrack> artistTracks =
+        await FnArtistService.instance.fetchArtistTracks('art_001');
+    expect(artistTracks, isNotEmpty);
   });
 }

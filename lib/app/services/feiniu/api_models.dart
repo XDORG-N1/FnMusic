@@ -3,6 +3,20 @@
 /// 响应统一包装为 `{code, message, data}`，与 mock 服务器契约一致。
 library;
 
+/// 从响应 `data` 字段取列表：数组直接返回，`{list, total}` 分页结构取 `list`。
+///
+/// 真实 FNOS 的列表接口统一返回分页包裹 `{list, total}`，个别接口 / 旧版本
+/// 返回裸数组。旧实现按裸 `List` 强转在分页结构下抛 TypeError（如专辑 / 歌手 /
+/// 流派 / 歌单详情曲目），这里两种形态都兼容。
+List<Object?> listItemsOf(Object? data) {
+  if (data is List) return data;
+  if (data is Map) {
+    final Object? list = data['list'];
+    if (list is List) return list;
+  }
+  return const <Object?>[];
+}
+
 /// API 响应包装。
 class ApiResponse<T> {
   const ApiResponse({required this.code, required this.message, required this.data});

@@ -9,7 +9,7 @@ class FnGenreService {
 
   Future<List<FnGenre>> fetchGenres() async {
     final dynamic data = await ApiClient.instance.getData('/genre/list');
-    final List<Object?> raw = (data as List<Object?>?) ?? const <Object?>[];
+    final List<Object?> raw = listItemsOf(data);
     return raw
         .whereType<Map<Object?, Object?>>()
         .map((Map<Object?, Object?> m) =>
@@ -23,7 +23,7 @@ class FnGenreService {
       '/track/genre-detail/list',
       query: <String, Object?>{'guid': genreGuid},
     );
-    final List<Object?> raw = (data as List<Object?>?) ?? const <Object?>[];
+    final List<Object?> raw = listItemsOf(data);
     return raw
         .whereType<Map<Object?, Object?>>()
         .map((Map<Object?, Object?> m) =>
