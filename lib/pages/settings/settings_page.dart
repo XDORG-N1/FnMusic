@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../app/services/feiniu/account_entry.dart';
+import '../../app/services/feiniu/account_store.dart';
+import '../../app/services/feiniu/auth_service.dart';
+import '../../app/services/player_service.dart';
 import '../../app/state/settings_state.dart';
 import 'about_page.dart';
 import 'backup_restore_page.dart';
@@ -18,6 +22,7 @@ class SettingsPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: <Widget>[
+          const _AccountSection(),
           _SectionHeader('外观'),
           _ThemeModeTile(),
           _DynamicColorTile(),
@@ -96,6 +101,96 @@ class SettingsPage extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// 账号区：当前账号信息 + 退出登录。
+class _AccountSection extends StatelessWidget {
+  const _AccountSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<String?>(
+      valueListenable: AccountStore.instance.activeAccountId,
+      builder: (BuildContext context, String? id, _) {
+        final AccountEntry? account = AccountStore.instance.activeAccount;
+        if (account == null) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            const _SectionHeader('账号'),
+            ListTile(
+              leading: CircleAvatar(
+                radius: 18,
+                child: Text(
+                  account.userName.isNotEmpty
+                      ? account.userName.characters.first
+                      : '?',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+              title: Text(account.displayName),
+              subtitle: Text(_accountSubtitle(account)),
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.logout,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: Text(
+                '退出登录',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              onTap: () => _confirmLogout(context),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  static String _accountSubtitle(AccountEntry account) {
+    final String host = account.fnId?.isNotEmpty == true
+        ? account.fnId!
+        : account.serverUrl;
+    return '${account.userName} · $host';
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('退出登录'),
+        content: const Text(
+          '退出后需重新登录才能访问音乐库。已保存的账号与连接信息仍保留，'
+          '重新登录时自动预填，输入密码即可进入。',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('退出登录'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final NavigatorState navigator = Navigator.of(context);
+    // 退出前先停止播放并清除持久化播放状态。
+    try {
+      await FnPlayerService.instance.clear();
+      await FnPlayerService.instance.clearPersistedState();
+    } catch (_) {}
+    // 登出：清 token / 连接 / 会话缓存；门控自动把主外壳切回登录页。
+    await AuthService.instance.logout();
+    // 设置路由是压栈在根导航器上的，登出后需退栈露出登录页。
+    navigator.popUntil((Route<dynamic> r) => r.isFirst);
   }
 }
 

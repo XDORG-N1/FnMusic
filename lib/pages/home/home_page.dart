@@ -13,6 +13,7 @@ import '../../app/services/feiniu/favorite_service.dart';
 import '../../app/services/feiniu/playlist_service.dart';
 import '../../app/services/feiniu/track_service.dart';
 import '../../app/services/player_service.dart';
+import '../../app/services/session_cache.dart';
 import '../../app/state/song_state.dart';
 import '../../components/common/artwork_widget.dart';
 import '../library/albums_page.dart';
@@ -40,7 +41,7 @@ class _HomeCacheData {
   final List<FnPlaylist>? playlists;
   final List<SongEntity>? recentTracks;
 
-  static const String prefKey = 'home_dashboard_cache_v1';
+  static const String prefKey = SessionCache.homeDashboardKey;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'favorites': favorites?.map((SongEntity s) => s.toJson()).toList(),
@@ -138,7 +139,7 @@ class _HomePageState extends State<HomePage> {
     if (!forceRefresh) {
       await _restoreCache();
     }
-    if (!mounted) return;
+    if (!mounted || !_sessionActive) return;
     await Future.wait(<Future<void>>[
       _loadRoam(),
       _loadFavorites(),
@@ -147,12 +148,16 @@ class _HomePageState extends State<HomePage> {
       _loadPlaylists(),
       _loadRecentTracks(),
     ]);
-    if (!mounted) return;
+    if (!mounted || !_sessionActive) return;
     setState(() {
       _loading = false;
     });
     await _writeCache();
   }
+
+  /// 会话是否仍有效（登出 / 401 回退后不再更新页面、不再写缓存）。
+  bool get _sessionActive =>
+      AuthService.instance.status.value == AuthStatus.loggedIn;
 
   /// 从本地缓存渲染首屏（失败静默忽略）。
   Future<void> _restoreCache() async {
@@ -178,6 +183,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _writeCache() async {
+    // 会话已失效（401 登出）时不写脏数据，避免登出清理后又被写回。
+    if (!_sessionActive) return;
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       final _HomeCacheData data = _HomeCacheData(

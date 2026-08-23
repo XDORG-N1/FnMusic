@@ -104,6 +104,10 @@ class _AppStartupGateState extends State<AppStartupGate> {
         return ValueListenableBuilder<AuthStatus>(
           valueListenable: AuthService.instance.status,
           builder: (context, status, _) {
+            // 恢复会话期间显示闪屏，避免「先登录页后首页」的闪烁。
+            if (status == AuthStatus.restoring) {
+              return const _StartupSplash();
+            }
             if (status != AuthStatus.loggedIn) {
               return const LoginPage();
             }
@@ -111,6 +115,45 @@ class _AppStartupGateState extends State<AppStartupGate> {
           },
         );
       },
+    );
+  }
+}
+
+/// 会话恢复闪屏：登录态未确定前短暂展示，避免启动时先闪登录页再进首页。
+class _StartupSplash extends StatelessWidget {
+  const _StartupSplash();
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(Icons.music_note, size: 72, color: scheme.primary),
+            const SizedBox(height: 16),
+            Text(
+              '飞牛音乐',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 32),
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '正在恢复会话…',
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -27,6 +27,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _userController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
+  final FocusNode _passwordFocus = FocusNode();
 
   bool _loading = false;
   String? _error;
@@ -59,6 +60,7 @@ class _LoginPageState extends State<LoginPage> {
     _userController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
+    _passwordFocus.dispose();
     _hideProbeOverlay();
     super.dispose();
   }
@@ -280,6 +282,7 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: _passwordController,
+                    focusNode: _passwordFocus,
                     decoration: const InputDecoration(
                       labelText: '密码',
                       prefixIcon: Icon(Icons.lock_outline),
@@ -355,8 +358,24 @@ class _LoginPageState extends State<LoginPage> {
                       _nameController.text = a.displayName;
                       _passwordController.clear();
                     });
-                    await AuthService.instance.switchToAccount(a);
-                    navigator.popUntil((Route<dynamic> r) => r.isFirst);
+                    final bool switched =
+                        await AuthService.instance.switchToAccount(a);
+                    if (switched) {
+                      // token 仍有效：静默切换进首页。
+                      navigator.popUntil((Route<dynamic> r) => r.isFirst);
+                    } else {
+                      // 该账号已退出登录（token 已清除），无法静默登录：
+                      // 预填已完成，提示并聚焦密码框等待重新输入。
+                      _passwordFocus.requestFocus();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '${a.displayName} 已退出登录，请重新输入密码',
+                          ),
+                        ),
+                      );
+                    }
                   },
                 ),
               );
