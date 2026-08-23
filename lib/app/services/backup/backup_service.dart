@@ -163,7 +163,7 @@ class WebDavFolder {
 
 /// 数据备份 / 还原服务。
 ///
-/// 与参考项目的差异：无 file_picker（不在离线 pub cache），本地备份改为
+/// 与原设计的差异：无 file_picker（不在离线 pub cache），本地备份改为
 /// 写入应用文档目录 `backups/`（应用内列出/导入/删除）；无 package_info_plus，
 /// 版本号取 [AppInfo.version] 常量。WebDAV 能力完整保留。
 class BackupService {

@@ -55,6 +55,6 @@ flutter test
 
 ## 开源协议
 
-本项目基于 **Apache License 2.0** 开源，详见 [LICENSE](LICENSE)。
+本项目由 **XDORG 团队自主研发**，基于 **Apache License 2.0** 开源，详见 [LICENSE](LICENSE)。
 
-Copyright © 2026 XDORG-N1
+Copyright © 2026 XDORG

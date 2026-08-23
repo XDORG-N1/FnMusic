@@ -119,9 +119,9 @@ class _FnMusicAudioHandler extends BaseAudioHandler
   String? _lastCoverId;
   Uri? _cachedCoverUri;
 
-  /// 当前曲目封面本地文件路径。当前曲目的 Metadata 用 `file://` 指向它
-  /// （对齐 NagoMusic 实机验证方案），audio_service 按 artCacheFile 让原生
-  /// 侧内嵌 ALBUM_ART Bitmap；妙播媒体卡片读内嵌 Bitmap 显示封面。
+  /// 当前曲目封面本地文件路径。当前曲目的 Metadata 用 `file://` 指向它，
+  /// audio_service 按 artCacheFile 让原生侧内嵌 ALBUM_ART Bitmap；妙播媒体
+  /// 卡片读内嵌 Bitmap 显示封面。
   String? _cachedCoverPath;
 
   /// 切歌时是否正在解析当前歌曲封面。解析期间抑制 [_syncMediaItem]，
@@ -303,9 +303,9 @@ class _FnMusicAudioHandler extends BaseAudioHandler
   // ---- MediaItem / PlaybackState 构建 ----
 
   /// [current] 为 true 表示构建「当前播放曲目」的 MediaItem：artUri 用
-  /// file:// 本地路径（对齐 NagoMusic 实机验证的方案），audio_service 按
-  /// artCacheFile 让原生侧内嵌 ALBUM_ART Bitmap，妙播媒体卡片直接读内嵌
-  /// Bitmap。队列/浏览条目（[current] 为 false）仍用 content://，供
+  /// file:// 本地路径，audio_service 按 artCacheFile 让原生侧内嵌 ALBUM_ART
+  /// Bitmap，妙播媒体卡片直接读内嵌 Bitmap。队列/浏览条目（[current] 为
+  /// false）仍用 content://，供
   /// Android Auto 等外部进程读取。
   MediaItem _itemFromSong(SongEntity song, {bool current = false}) {
     final lyricLine = MediaNotificationSettings.showLyrics.value

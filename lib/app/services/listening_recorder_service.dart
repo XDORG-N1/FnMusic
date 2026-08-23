@@ -8,7 +8,7 @@ import 'db/db_helper.dart';
 /// 听歌行为记录器：把每次单曲播放会话写入 report_events 流水表，
 /// 供听歌报告 / 导出使用。累计规则与 [StatsService] 一致（封顶间隔）。
 ///
-/// 与参考项目的差异：歌曲标识用 `song.guid`，显示列内联
+/// 与原设计的差异：歌曲标识用 `song.guid`，显示列内联
 /// （song_title / artist / album / cover_id），不依赖 songs 表。
 class ListeningRecorderService {
   ListeningRecorderService._internal();

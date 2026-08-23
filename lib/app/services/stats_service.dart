@@ -94,7 +94,7 @@ class StatsTotals {
 
 /// 听歌统计服务：订阅播放快照 → 纯累计器 → 落 SQLite。
 ///
-/// 与参考项目的差异：不建 songs 全量表，song_stats 内联显示列
+/// 与原设计的差异：不建 songs 全量表，song_stats 内联显示列
 /// （song_title/artist/cover_id），歌曲元数据仍以服务端 API 为准。
 class StatsService {
   StatsService._internal();

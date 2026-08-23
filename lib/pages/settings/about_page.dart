@@ -57,10 +57,14 @@ class AboutPage extends StatelessWidget {
             subtitle: const Text('连接你的飞牛 NAS，在线流媒体播放'),
           ),
           const ListTile(
+            leading: Icon(Icons.groups_outlined),
+            title: Text('研发团队'),
+            subtitle: Text('XDORG'),
+          ),
+          const ListTile(
             leading: Icon(Icons.code_outlined),
             title: Text('开源声明'),
-            subtitle: Text('本项目参照 FeiNiuMusic / NagoMusic 开源项目重构，'
-                '遵循其开源协议'),
+            subtitle: Text('本应用由 XDORG 自主研发，基于 Apache-2.0 协议开源'),
           ),
           ListTile(
             leading: const Icon(Icons.info_outline),

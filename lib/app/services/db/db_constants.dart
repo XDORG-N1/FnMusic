@@ -1,7 +1,7 @@
 /// 本地 SQLite 常量。
 ///
 /// FnMusic 仅依赖 5 张统计/报告表：歌曲元数据来自服务端 API，
-/// 故不建 songs 全量表（参考项目在此建了整张 songs 表，其 [SongEntity]
+/// 故不建 songs 全量表（原设计在此建了整张 songs 表，其 [SongEntity]
 /// 带 toMap 且歌曲可离线编辑；我们只记录统计所需显示列）。
 class DbConstants {
   DbConstants._();

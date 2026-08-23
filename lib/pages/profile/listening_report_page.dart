@@ -6,7 +6,7 @@ import '../../app/services/report/report_snapshot.dart';
 
 /// 听歌报告页：聚合本地听歌数据 → 生成自包含 HTML → WebView 渲染。
 ///
-/// 与参考项目的差异：参考项目加载外部报告网页（hash/localStorage 注入
+/// 与原设计的差异：原设计加载外部报告网页（hash/localStorage 注入
 /// payload）；FnMusic 无外部网页，改用 [ReportHtmlBuilder] 生成内联 CSS
 /// 的 HTML 经 `loadHtmlString` 直接渲染，完全离线可用。
 class ListeningReportPage extends StatefulWidget {

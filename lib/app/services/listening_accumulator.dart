@@ -26,7 +26,7 @@ class StatsDelta {
 /// 纯函数式收听累计器：只根据 [PlayerSnapshot] + 时钟增量累计，
 /// 不触碰 IO/数据库，可独立单元测试。
 ///
-/// 规则（对齐参考项目 StatsService）：
+/// 规则（对齐原设计 StatsService）：
 /// - 只在 `snap.isPlaying` 且有当前歌曲时累计；
 /// - 两次快照间隔超过 [maxTickGapMs] 视为中断，本次增量封顶；
 /// - 单曲累计满 [playCountThresholdMs] 计 1 次播放；

@@ -4,7 +4,7 @@ import '../theme/app_colors.dart';
 
 /// 外观设置：主题模式 / 动态取色 / 种子色。
 ///
-/// 采用参考项目的模式：静态类持有 `static final ValueNotifier`，
+/// 采用原设计的模式：静态类持有 `static final ValueNotifier`，
 /// `ensureLoaded()` 惰性加载，setter 写入 SharedPreferences 并通知。
 class SettingsTheme {
   SettingsTheme._();

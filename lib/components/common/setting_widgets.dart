@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// 歌词/设置面板的等价组件（Material 实现）。
 ///
-/// 参考项目用 AppSheetPanel/AppSettingSection/LabeledSlider/AppSettingSwitchTile
+/// 原设计用 AppSheetPanel/AppSettingSection/LabeledSlider/AppSettingSwitchTile
 /// 构建各设置弹层；FnMusic 目前仅在歌词设置中用到，故只实现最小等价物。
 
 /// 带标题与拖动把手的底部面板外壳。

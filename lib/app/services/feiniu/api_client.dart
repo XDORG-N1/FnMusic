@@ -127,7 +127,7 @@ class ApiClient {
   /// 密码登录。password 为明文，内部做 SHA-256。
   ///
   /// 真实 FNOS 要求字段 `username` + `deviceId`（32 位 hex）；缺 deviceId 时
-  /// 用全 0 占位仍可登录（参考项目语义），AuthService 会传入持久化设备号。
+  /// 用全 0 占位仍可登录（原设计语义），AuthService 会传入持久化设备号。
   Future<FnLoginResult> login({
     required String user,
     required String password,

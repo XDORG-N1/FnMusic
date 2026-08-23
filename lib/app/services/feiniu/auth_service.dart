@@ -115,7 +115,7 @@ class AuthService {
     if (_deviceId != null) return _deviceId!;
     _deviceId = _cachedDeviceId;
     if (_deviceId != null) return _deviceId!;
-    // 异步生成；未就绪前先用全 0 占位（参考项目语义）。
+    // 异步生成；未就绪前先用全 0 占位（原设计语义）。
     unawaited(_initDeviceId());
     return _deviceId ?? '00000000000000000000000000000000';
   }

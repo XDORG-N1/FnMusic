@@ -10,7 +10,7 @@ import 'package:signals_flutter/signals_flutter.dart' hide computed;
 import '../../../app/services/feiniu/api_client.dart';
 import '../../../app/state/song_state.dart';
 
-/// 播放器背景 / 封面相关设置（参考项目 PlayerBackgroundSettings）。
+/// 播放器背景 / 封面相关设置（原设计 PlayerBackgroundSettings）。
 class PlayerBackgroundSettings {
   static const String _prefsPlaybackThemeMode = 'setting_playback_theme_mode';
   static const String _prefsDynamicGradientEnabled = 'dynamic_gradient_enabled';

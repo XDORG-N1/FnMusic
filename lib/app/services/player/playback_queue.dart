@@ -6,7 +6,7 @@ import '../../state/song_state.dart';
 /// 播放队列与导航（纯逻辑，可单测）。
 ///
 /// PlayerService 以此为唯一真源驱动播放，并把状态镜像到 [AppPlayerState]。
-/// 模式语义（与参考项目一致）：
+/// 模式语义（与原设计一致）：
 /// - [PlaybackMode.sequential]：顺序播放，到队尾/队首停止（next 返回 null）；
 /// - [PlaybackMode.loop]：列表循环，队尾 next 回卷到队首；
 /// - [PlaybackMode.shuffle]：按 Fisher-Yates 洗牌顺序导航，耗尽后重新洗牌；

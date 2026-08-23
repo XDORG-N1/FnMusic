@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// 媒体通知（MediaSession / 通知栏 / 车载歌词）设置。
 ///
-/// 与参考项目一致的 prefs key 前缀 `notification_`，控制通知栏是否显示
+/// 与原设计一致的 prefs key 前缀 `notification_`，控制通知栏是否显示
 /// 歌词、歌词是否置顶、收藏/关闭自定义按钮、车载蓝牙歌词开关。
 class MediaNotificationSettings {
   static const String _prefsShowLyrics = 'notification_show_lyrics';
