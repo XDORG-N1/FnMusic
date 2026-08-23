@@ -2,7 +2,7 @@ name: fnmusic
 description: "FnMusic — 飞牛 NAS 音乐客户端（Android 15+）。"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.13.0
