@@ -4,6 +4,8 @@
 
 把你的 NAS 音乐库装进口袋 —— 登录即听，界面清爽，功能完整。
 
+[![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
+
 ## 特性
 
 - **FN ID / FN Connect 登录**：自动探测可达地址（内网 → 公网 → 中继），无需手动穿透
@@ -43,6 +45,16 @@ flutter analyze
 flutter test
 ```
 
-## 反馈
+## 参与贡献
 
-任何问题、建议或功能需求，欢迎在 [Issues](https://github.com/XDORG-N1/FnMusic/issues) 提出。
+欢迎任何形式的参与 —— 报告问题、提建议、提交代码都行：
+
+1. 问题 / 功能请求请在 [Issues](https://github.com/XDORG-N1/FnMusic/issues) 提出（附复现步骤更佳）；
+2. 提交代码请 Fork 后建分支，通过 `flutter analyze` + `flutter test` 再提 PR；
+3. 完整的开源策略（许可证、维护模型、贡献约定、路线图）见 [docs/opensource-strategy.md](docs/opensource-strategy.md)。
+
+## 开源协议
+
+本项目基于 **Apache License 2.0** 开源，详见 [LICENSE](LICENSE)。
+
+Copyright © 2026 XDORG-N1
