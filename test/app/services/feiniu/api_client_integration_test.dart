@@ -36,7 +36,8 @@ void main() {
 
     final dynamic data = await client.getData('/track/list', query: <String, Object?>{
       'page': 1,
-      'pageSize': 5,
+      // 真实 FNOS 分页参数为 `size`。
+      'size': 5,
     });
     final ApiPage<FnTrack> page = ApiPage<FnTrack>.fromJson(
       (data as Map<Object?, Object?>).cast<String, Object?>(),

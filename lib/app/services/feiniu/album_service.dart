@@ -30,7 +30,8 @@ class FnAlbumService {
       '/album/list',
       query: <String, Object?>{
         'page': page,
-        'pageSize': _pageSize,
+        // 真实 FNOS 分页参数为 `size`（`pageSize` 不生效）。
+        'size': _pageSize,
         'sort': ?sort,
       },
     );
@@ -42,23 +43,31 @@ class FnAlbumService {
   }
 
   /// 专辑内曲目。
+  ///
+  /// 真实 FNOS 端点 `/track/album-detail/list` 参数为 `albumGUID`（非 `guid`），
+  /// 分页结构 `{list, total, sort}`，默认每页 50，需逐页拉全。
   Future<List<FnTrack>> fetchAlbumTracks(String albumGuid) async {
     final Future<List<FnTrack>> Function(String)? override =
         fetchAlbumTracksOverride;
     if (override != null) return override(albumGuid);
     if (albumGuid.trim().isEmpty) {
-      // 真实 FNOS 对空 guid 直接返回 100002；本地拦截，给出明确提示。
+      // 真实 FNOS 对空 albumGUID 返回 100002（InvalidArgs）；本地拦截。
       throw ApiException(100002, '专辑标识缺失，请返回刷新后重试');
     }
-    final dynamic data = await ApiClient.instance.getData(
-      '/track/album-detail/list',
-      query: <String, Object?>{'guid': albumGuid},
+    final List<Object?> raw = await paginateAll(
+      (int page) => ApiClient.instance.getData(
+        '/track/album-detail/list',
+        query: <String, Object?>{
+          'albumGUID': albumGuid,
+          'page': page,
+          'size': 100,
+        },
+      ),
     );
-    return _parseTracks(data);
+    return _parseTracks(raw);
   }
 
-  static List<FnTrack> _parseTracks(dynamic data) {
-    final List<Object?> raw = listItemsOf(data);
+  static List<FnTrack> _parseTracks(List<Object?> raw) {
     return raw
         .whereType<Map<Object?, Object?>>()
         .map((Map<Object?, Object?> m) =>

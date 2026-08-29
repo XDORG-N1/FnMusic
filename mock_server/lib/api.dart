@@ -60,8 +60,9 @@ Handler buildApiHandler() {
 // ---------- 通用 ----------
 
 Response _json(Object? data, {String message = 'ok', int code = 0}) {
+  // 与真实 FNOS 对齐：业务字段为 `msg`（非 `message`）。
   return Response.ok(
-    jsonEncode(<String, Object?>{'code': code, 'message': message, 'data': data}),
+    jsonEncode(<String, Object?>{'code': code, 'msg': message, 'data': data}),
     headers: <String, String>{'content-type': 'application/json; charset=utf-8'},
   );
 }
@@ -145,7 +146,7 @@ Future<Response> _login(Request req) async {
 
 int _page(Map<String, Object?> query) => int.tryParse(query['page']?.toString() ?? '') ?? 1;
 int _pageSize(Map<String, Object?> query) =>
-    (int.tryParse(query['pageSize']?.toString() ?? '') ?? 100).clamp(1, 500);
+    (int.tryParse(query['size']?.toString() ?? '') ?? 100).clamp(1, 500);
 List<T> _paginate<T>(List<T> items, int page, int pageSize) {
   final int start = (page - 1) * pageSize;
   if (start >= items.length) return <T>[];
@@ -196,15 +197,28 @@ Response _albumList(Request req) {
   return _json(_pageWrap(list, albums.length, page, pageSize));
 }
 
+/// 详情页曲目列表公共逻辑：按 [match] 过滤 + 分页 + 100002/100005 对齐真实 FNOS。
+///
+/// 真实 FNOS 参数名为 `albumGUID`/`artistGUID`/`genreGUID`/`playlistGUID`
+/// （非 `guid`），缺参返回 100002（InvalidArgs），空结果返回 `{list, total}`。
+Response _detailTracks(Request req, String guidParam,
+    bool Function(MockTrack t) match) {
+  final Map<String, Object?> query = req.url.queryParameters;
+  final String? guid = query[guidParam]?.toString();
+  if (guid == null || guid.isEmpty) {
+    return _err(100002, 'invalid arguments');
+  }
+  final int page = _page(query);
+  final int pageSize = _pageSize(query);
+  final List<Object?> all = tracks.where(match).map((MockTrack t) => t.toJson()).toList();
+  final List<Object?> list = _paginate(all, page, pageSize);
+  // 与真实 FNOS 一致：data 为分页包裹 {list, total}，缺 page/pageSize 字段。
+  return _json(<String, Object?>{'list': list, 'total': all.length});
+}
+
 Response _albumTracks(Request req) {
-  final String? guid = req.url.queryParameters['guid'];
-  if (guid == null) return _err(400, '缺少 guid');
-  // 与真实 FNOS 一致：data 为分页包裹 {list, total}。
-  final List<Object?> list = tracks
-      .where((MockTrack t) => t.albumGuid == guid)
-      .map((MockTrack t) => t.toJson())
-      .toList();
-  return _json(_pageWrap(list, list.length, 1, list.length));
+  final String? guid = req.url.queryParameters['albumGUID'];
+  return _detailTracks(req, 'albumGUID', (MockTrack t) => t.albumGuid == guid);
 }
 
 Response _artistList(Request req) {
@@ -222,14 +236,8 @@ Response _artistList(Request req) {
 }
 
 Response _artistTracks(Request req) {
-  final String? guid = req.url.queryParameters['guid'];
-  if (guid == null) return _err(400, '缺少 guid');
-  // 与真实 FNOS 一致：data 为分页包裹 {list, total}。
-  final List<Object?> list = tracks
-      .where((MockTrack t) => t.artistGuids.contains(guid))
-      .map((MockTrack t) => t.toJson())
-      .toList();
-  return _json(_pageWrap(list, list.length, 1, list.length));
+  final String? guid = req.url.queryParameters['artistGUID'];
+  return _detailTracks(req, 'artistGUID', (MockTrack t) => t.artistGuids.contains(guid));
 }
 
 Response _genreList(Request req) {
@@ -241,14 +249,8 @@ Response _genreList(Request req) {
 }
 
 Response _genreTracks(Request req) {
-  final String? guid = req.url.queryParameters['guid'];
-  if (guid == null) return _err(400, '缺少 guid');
-  // 与真实 FNOS 一致：data 为分页包裹 {list, total}。
-  final List<Object?> list = tracks
-      .where((MockTrack t) => t.genreGuids.contains(guid))
-      .map((MockTrack t) => t.toJson())
-      .toList();
-  return _json(_pageWrap(list, list.length, 1, list.length));
+  final String? guid = req.url.queryParameters['genreGUID'];
+  return _detailTracks(req, 'genreGUID', (MockTrack t) => t.genreGuids.contains(guid));
 }
 
 Response _playlistList(Request req) {
@@ -269,19 +271,23 @@ Response _playlistList(Request req) {
 }
 
 Response _playlistTracks(Request req) {
-  final String? guid = req.url.queryParameters['guid'];
-  if (guid == null) return _err(400, '缺少 guid');
+  final Map<String, Object?> query = req.url.queryParameters;
+  final String? guid = query['playlistGUID']?.toString();
+  if (guid == null || guid.isEmpty) return _err(100002, 'invalid arguments');
   final MockPlaylist? playlist = MockStore.instance.playlists
       .where((MockPlaylist p) => p.guid == guid)
       .firstOrNull;
-  if (playlist == null) return _err(404, '歌单不存在');
-  final List<Object?> list = playlist.trackGuids
+  if (playlist == null) return _err(100005, '资源不存在或已被删除');
+  final int page = _page(query);
+  final int pageSize = _pageSize(query);
+  final List<Object?> all = playlist.trackGuids
       .map((String g) => trackByGuid[g])
       .whereType<MockTrack>()
       .map((MockTrack t) => t.toJson())
       .toList();
-  // 与真实 FNOS 一致：data 为分页包裹 {list, total}。
-  return _json(_pageWrap(list, list.length, 1, list.length));
+  final List<Object?> list = _paginate(all, page, pageSize);
+  // 与真实 FNOS 一致：data 为分页包裹 {list, total}，缺 page/pageSize 字段。
+  return _json(<String, Object?>{'list': list, 'total': all.length});
 }
 
 Future<Response> _playlistCreate(Request req) async {

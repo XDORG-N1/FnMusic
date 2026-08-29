@@ -18,7 +18,7 @@ class FnArtistService {
   Future<ApiPage<FnArtist>> fetchArtists({int page = 1}) async {
     final dynamic data = await ApiClient.instance.getData(
       '/artist/list',
-      query: <String, Object?>{'page': page, 'pageSize': _pageSize},
+      query: <String, Object?>{'page': page, 'size': _pageSize},
     );
     return ApiPage<FnArtist>.fromJson(
       (data as Map<Object?, Object?>).cast<String, Object?>(),
@@ -27,16 +27,24 @@ class FnArtistService {
     );
   }
 
-  /// 歌手曲目。
+  /// 歌手曲目。真实 FNOS 端点参数为 `artistGUID`，分页拉全。
   Future<List<FnTrack>> fetchArtistTracks(String artistGuid) async {
     final Future<List<FnTrack>> Function(String)? override =
         fetchArtistTracksOverride;
     if (override != null) return override(artistGuid);
-    final dynamic data = await ApiClient.instance.getData(
-      '/track/artist-detail/list',
-      query: <String, Object?>{'guid': artistGuid},
+    if (artistGuid.trim().isEmpty) {
+      throw ApiException(100002, '歌手标识缺失，请返回刷新后重试');
+    }
+    final List<Object?> raw = await paginateAll(
+      (int page) => ApiClient.instance.getData(
+        '/track/artist-detail/list',
+        query: <String, Object?>{
+          'artistGUID': artistGuid,
+          'page': page,
+          'size': 100,
+        },
+      ),
     );
-    final List<Object?> raw = listItemsOf(data);
     return raw
         .whereType<Map<Object?, Object?>>()
         .map((Map<Object?, Object?> m) =>

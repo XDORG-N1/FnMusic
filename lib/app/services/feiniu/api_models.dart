@@ -1,6 +1,6 @@
 /// FNOS 音乐 API 数据模型。
 ///
-/// 响应统一包装为 `{code, message, data}`，与 mock 服务器契约一致。
+/// 响应统一包装为 `{code, msg, data}`（真实 FNOS 业务字段为 `msg`；兼容读取 `message`）。
 library;
 
 /// 从响应 `data` 字段取列表：数组直接返回，`{list, total}` 分页结构取 `list`。
@@ -15,6 +15,34 @@ List<Object?> listItemsOf(Object? data) {
     if (list is List) return list;
   }
   return const <Object?>[];
+}
+
+/// 从分页响应 `data` 取总数：`{total, list}` 结构，缺失时回退列表长度。
+int totalOf(Object? data) {
+  if (data is Map) {
+    final int? total = (data['total'] as num?)?.toInt();
+    if (total != null && total >= 0) return total;
+  }
+  return listItemsOf(data).length;
+}
+
+/// 分页拉取全部列表项：循环调用 [fetchPage]（入参 page，从 1 起）直到收集够
+/// `total` 或某一页为空。真实 FNOS 详情曲目端点返回 `{list, total, sort}`，
+/// 默认每页 50（size 上限），需逐页拉全。
+Future<List<Object?>> paginateAll(
+  Future<dynamic> Function(int page) fetchPage,
+) async {
+  final List<Object?> all = <Object?>[];
+  int page = 1;
+  while (true) {
+    final dynamic data = await fetchPage(page);
+    final List<Object?> items = listItemsOf(data);
+    if (items.isEmpty) break;
+    all.addAll(items);
+    if (all.length >= totalOf(data)) break;
+    page++;
+  }
+  return all;
 }
 
 /// API 响应包装。
@@ -33,7 +61,8 @@ class ApiResponse<T> {
   ) {
     return ApiResponse<T>(
       code: (json['code'] as num?)?.toInt() ?? -1,
-      message: json['message'] as String? ?? '',
+      // 真实 FNOS 用 `msg`；mock/旧响应用 `message`，兼容读取。
+      message: json['msg'] as String? ?? json['message'] as String? ?? '',
       data: json.containsKey('data') ? parse(json['data']) : null,
     );
   }

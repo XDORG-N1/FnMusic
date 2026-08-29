@@ -21,13 +21,21 @@ class FnPlaylistService {
         .toList();
   }
 
-  /// 歌单内曲目。
+  /// 歌单内曲目。真实 FNOS 端点参数为 `playlistGUID`，分页拉全。
   Future<List<FnTrack>> fetchPlaylistTracks(String playlistGuid) async {
-    final dynamic data = await ApiClient.instance.getData(
-      '/track/playlist-detail/list',
-      query: <String, Object?>{'guid': playlistGuid},
+    if (playlistGuid.trim().isEmpty) {
+      throw ApiException(100002, '歌单标识缺失，请返回刷新后重试');
+    }
+    final List<Object?> raw = await paginateAll(
+      (int page) => ApiClient.instance.getData(
+        '/track/playlist-detail/list',
+        query: <String, Object?>{
+          'playlistGUID': playlistGuid,
+          'page': page,
+          'size': 100,
+        },
+      ),
     );
-    final List<Object?> raw = listItemsOf(data);
     return raw
         .whereType<Map<Object?, Object?>>()
         .map((Map<Object?, Object?> m) =>

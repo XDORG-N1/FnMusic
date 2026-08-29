@@ -306,15 +306,17 @@ class ApiException implements Exception {
   final int code;
   final String message;
 
-  /// 面向用户的友好提示：服务端 message 非空时优先，否则按业务码映射。
+  /// 面向用户的友好提示：服务端 message 非空时优先，否则按真实 FNOS 业务码映射。
   ///
-  /// 100002 为真实 FNOS 对无效/失效资源的统一业务拒绝码（如专辑被删除、
-  /// guid 为空或不可解析）；服务端通常不附带可读 message，这里给出兜底文案。
+  /// 错误码枚举取自 FNOS 官方前端：100002=InvalidArgs、100005=NotFound、
+  /// 120001=Unauthorized。服务端 `msg` 通常为英文（如 "invalid arguments"），
+  /// 这里给出中文兜底文案。
   String get friendlyMessage {
     if (message.trim().isNotEmpty) return message;
     return switch (code) {
-      100002 => '内容不存在或已被删除，请返回刷新后重试',
-      120001 => '用户名或密码错误，请重试！',
+      100002 => '参数不完整或格式不正确',
+      100005 => '资源不存在或已被删除',
+      120001 => '登录状态已失效，请重新登录',
       -1 => '响应格式异常，请稍后重试',
       _ => '请求失败（错误码 $code）',
     };

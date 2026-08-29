@@ -35,12 +35,13 @@ void main() {
   });
 
   test('ApiException.friendlyMessage 映射 100002 且原始 message 优先', () {
-    // 服务端不带 message → 用兜底映射。
+    // 服务端不带 message → 用兜底映射（100002=InvalidArgs）。
     expect(const ApiException(100002, '').friendlyMessage,
-        '内容不存在或已被删除，请返回刷新后重试');
+        '参数不完整或格式不正确');
     // 服务端带 message → 优先展示 message。
     expect(const ApiException(100002, '专辑已失效').friendlyMessage, '专辑已失效');
-    expect(const ApiException(120001, '').friendlyMessage, '用户名或密码错误，请重试！');
+    expect(const ApiException(100005, '').friendlyMessage, '资源不存在或已被删除');
+    expect(const ApiException(120001, '').friendlyMessage, '登录状态已失效，请重新登录');
     expect(const ApiException(-1, '').friendlyMessage, '响应格式异常，请稍后重试');
     expect(const ApiException(99999, '').friendlyMessage, '请求失败（错误码 99999）');
   });

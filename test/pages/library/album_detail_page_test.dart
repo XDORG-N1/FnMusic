@@ -185,7 +185,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // 友好提示 + 原始详情（含错误码）+ 重试按钮。
-    expect(find.text('内容不存在或已被删除，请返回刷新后重试'), findsOneWidget);
+    expect(find.text('参数不完整或格式不正确'), findsOneWidget);
     expect(find.text('ApiException(100002): '), findsOneWidget);
     expect(find.text('重试'), findsOneWidget);
 
@@ -194,7 +194,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(calls, 2);
     expect(find.text('歌1'), findsOneWidget);
-    expect(find.text('内容不存在或已被删除，请返回刷新后重试'), findsNothing);
+    expect(find.text('参数不完整或格式不正确'), findsNothing);
   });
 
   testWidgets('空专辑 guid 本地拦截并给出明确提示', (WidgetTester tester) async {
