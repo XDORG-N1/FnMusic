@@ -1,8 +1,8 @@
-# 飞牛 NAS 音乐客户端 FnMusic —— 把 NAS 音乐库装进口袋（v1.0.4 已发布）
+# 飞牛 NAS 音乐客户端 FnMusic —— 把 NAS 音乐库装进口袋（v1.0.5 已发布）
 
 你是否有一个装满音乐的 NAS，却一直找不到一个顺手、好看、能用的手机端音乐播放器？
 
-**FnMusic** 来了 —— 由 **XDORG 团队自主研发**，一个专为飞牛 FNOS 打造的原生音乐客户端（Android 15+）。界面清爽、体验流畅，把你的 NAS 音乐库变成随身曲库。**Apache-2.0 完全开源**，已发布 v1.0.4。
+**FnMusic** 来了 —— 由 **XDORG 团队自主研发**，一个专为飞牛 FNOS 打造的原生音乐客户端（Android 15+）。界面清爽、体验流畅，把你的 NAS 音乐库变成随身曲库。**Apache-2.0 完全开源**，已发布 v1.0.5。
 
 ## 它能做什么
 
@@ -29,9 +29,9 @@
 - 收藏、歌单管理、听歌统计与**听歌报告**
 - 备份恢复：本地 + WebDAV，换机不丢数据
 
-### ✨ v1.0.4 新增
-- **风格页**：「流派」统一改名「风格」，按网页版布局重做——渐变卡片 + 详情页渐变 Hero + 一键播放全部
-- **音乐库管理**：音乐库「文件夹」入口升级为完整管理页，对接 FNOS 共享库接口：新建 / 编辑 / 删除 / 扫描 / 扫描全部 / 重建搜索索引 / 扫描状态实时展示
+### ✨ v1.0.5 新增
+- **音乐库路径选择器**：设置音乐库「音乐文件夹」时，路径改为**点击式文件夹选择器**，与网页版设置页交互完全对齐——面包屑逐级浏览授权目录、语义化展示路径（存储空间 / 我的文件 / 应用文件 / 外接存储 / 他人共享 / 远程挂载），已添加为音乐库的文件夹自动标注「已添加」且不可重复选择，选路径从此不用手敲、不会敲错
+- 底层对接 FNOS 真实授权目录接口（app-center authed-dir），与飞牛官方 Web 端行为一致
 
 ### 🛡️ 健壮与省心
 - 会话失效自动回退登录页，绝不「卡死半登录」
@@ -49,8 +49,8 @@
 ## 下载
 
 - **GitHub 仓库**：<https://github.com/XDORG-N1/FnMusic>
-- **最新版 APK**：<https://github.com/XDORG-N1/FnMusic/releases/latest>
-- **v1.0.4 直链**：<https://github.com/XDORG-N1/FnMusic/releases/download/v1.0.4/FnMusic-v1.0.4-release.apk>
+- **最新版 APK**（始终指向最新 release）：<https://github.com/XDORG-N1/FnMusic/releases/latest>
+- **v1.0.5 直链**：<https://github.com/XDORG-N1/FnMusic/releases/download/v1.0.5/app-release.apk>
 
 下载后开启「允许安装未知来源应用」即可安装。
 
