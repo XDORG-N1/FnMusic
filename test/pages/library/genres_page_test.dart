@@ -16,7 +16,7 @@ FnGenre _genre(String name, {int trackCount = 3, String? coverId}) {
     'guid': 'gen-$name',
     'name': name,
     'trackCount': trackCount,
-    if (coverId != null) 'coverId': coverId,
+    'coverId': ?coverId,
   });
 }
 

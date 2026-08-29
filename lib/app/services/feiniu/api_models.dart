@@ -173,6 +173,127 @@ class FnGenre {
   }
 }
 
+/// 音乐库元数据偏好（真实 FNOS `/shared-library` 的 `metadataPreference` 枚举）。
+abstract final class FnMetadataPreference {
+  static const String localPreferred = 'local_preferred';
+  static const String cloudPreferred = 'cloud_preferred';
+  static const String localOnly = 'local_only';
+}
+
+/// 音乐库（共享媒体库，网页版「音乐库管理」）。
+///
+/// 字段对齐真实 FNOS `/shared-library/list`（经官方 SPA 逆向）：
+/// `{guid, path, name, autoDownloadLyric, metadataPreference, accessStatus,
+/// contentLastChangedAt, coverIds}`。
+class FnLibrary {
+  const FnLibrary({
+    required this.guid,
+    required this.path,
+    this.name = '',
+    this.autoDownloadLyric = false,
+    this.metadataPreference = FnMetadataPreference.cloudPreferred,
+    this.accessStatus = 0,
+    this.contentLastChangedAt = 0,
+    this.coverIds = const <String>[],
+  });
+
+  final String guid;
+  final String path;
+  final String name;
+  final bool autoDownloadLyric;
+
+  /// `local_preferred` / `cloud_preferred` / `local_only`。
+  final String metadataPreference;
+  final int accessStatus;
+
+  /// 内容最后变更时间（epoch 秒；服务端也可能回毫秒，解析时归一化）。
+  final int contentLastChangedAt;
+  final List<String> coverIds;
+
+  /// 展示名：显式 name 优先，否则取路径末段。
+  String get displayName {
+    final String trimmed = name.trim();
+    if (trimmed.isNotEmpty) return trimmed;
+    final String norm = path.replaceAll('\\', '/').trimRight();
+    final List<String> segs =
+        norm.split('/').where((String s) => s.isNotEmpty).toList();
+    return segs.isEmpty ? path : segs.last;
+  }
+
+  /// 内容最后变更时间（毫秒时间戳；0 / 无效 → null）。
+  DateTime? get lastChangedAt {
+    if (contentLastChangedAt <= 0) return null;
+    final int seconds =
+        contentLastChangedAt > 1000000000000
+            ? (contentLastChangedAt / 1000).round()
+            : contentLastChangedAt;
+    return DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+  }
+
+  factory FnLibrary.fromJson(Map<String, Object?> json) {
+    final Object? rawChanged = json['contentLastChangedAt'];
+    final int changed =
+        rawChanged is num ? rawChanged.toInt() : (int.tryParse('$rawChanged') ?? 0);
+    final List<Object?> rawCovers = json['coverIds'] is List
+        ? json['coverIds']! as List<Object?>
+        : const <Object?>[];
+    return FnLibrary(
+      guid: json['guid'] as String? ?? '',
+      path: json['path'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      autoDownloadLyric: json['autoDownloadLyric'] as bool? ?? false,
+      metadataPreference: json['metadataPreference'] as String? ??
+          FnMetadataPreference.cloudPreferred,
+      accessStatus: (json['accessStatus'] as num?)?.toInt() ?? 0,
+      contentLastChangedAt: changed,
+      coverIds: rawCovers
+          .whereType<String>()
+          .map((String c) => c.trim())
+          .where((String c) => c.isNotEmpty)
+          .toList(),
+    );
+  }
+}
+
+/// 扫描任务（`/task/list` 中的 `fileScan` 类型），用于展示音乐库扫描状态。
+class FnScanTask {
+  const FnScanTask({
+    required this.guid,
+    required this.libraryGuid,
+    required this.type,
+    required this.done,
+    required this.cancelling,
+    required this.createdAt,
+  });
+
+  final String guid;
+  final String libraryGuid;
+  final String type;
+  final bool done;
+  final bool cancelling;
+  final int createdAt;
+
+  bool get isActiveScan => type == 'fileScan' && !done;
+
+  factory FnScanTask.fromJson(Map<String, Object?> json) {
+    final Map<String, Object?> ext = _mapField(json['ext']);
+    final Object? rawCreated = json['createdAt'];
+    return FnScanTask(
+      guid: json['guid'] as String? ?? '',
+      libraryGuid: ext['libraryGUID']?.toString() ?? '',
+      type: json['type'] as String? ?? '',
+      done: json['done'] as bool? ?? false,
+      cancelling: json['cancelling'] as bool? ?? false,
+      createdAt: rawCreated is num ? rawCreated.toInt() : (int.tryParse('$rawCreated') ?? 0),
+    );
+  }
+}
+
+Map<String, Object?> _mapField(Object? value) {
+  if (value is Map<Object?, Object?>) return value.cast<String, Object?>();
+  return const <String, Object?>{};
+}
+
 /// 音频规格。
 class FnAudioSpec {
   const FnAudioSpec({

@@ -5,8 +5,8 @@ import '../../pages/home/home_page.dart';
 import '../../pages/home/recent_page.dart';
 import '../../pages/library/albums_page.dart';
 import '../../pages/library/artists_page.dart';
-import '../../pages/library/folders_page.dart';
 import '../../pages/library/genres_page.dart';
+import '../../pages/library/library_manage_page.dart';
 import '../../pages/library/library_page.dart';
 import '../../pages/library/playlists_page.dart';
 import '../../pages/player/player_page.dart';
@@ -54,7 +54,7 @@ class AppRouter {
         ArtistsPage.route: (_) => const ArtistsPage(),
         GenresPage.route: (_) => const GenresPage(),
         PlaylistsPage.route: (_) => const PlaylistsPage(),
-        FoldersPage.route: (_) => const FoldersPage(),
+        LibraryManagePage.route: (_) => const LibraryManagePage(),
         FavoritePage.route: (_) => const FavoritePage(),
         RecentPage.route: (_) => const RecentPage(),
         ListeningStatsPage.route: (_) => const ListeningStatsPage(),

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'albums_page.dart';
 import 'artists_page.dart';
-import 'folders_page.dart';
 import 'genres_page.dart';
+import 'library_manage_page.dart';
 import 'playlists_page.dart';
 import '../home/favorite_page.dart';
 import '../songs/songs_page.dart';
@@ -19,7 +19,8 @@ class LibraryPage extends StatelessWidget {
     _LibraryEntry(Icons.people_outline, '歌手', Colors.green, ArtistsPage.route),
     _LibraryEntry(Icons.category_outlined, '风格', Colors.purple, GenresPage.route),
     _LibraryEntry(Icons.queue_music, '歌单', Colors.orange, PlaylistsPage.route),
-    _LibraryEntry(Icons.folder_outlined, '文件夹', Colors.teal, FoldersPage.route),
+    _LibraryEntry(
+        Icons.folder_outlined, '音乐库管理', Colors.teal, LibraryManagePage.route),
   ];
 
   @override

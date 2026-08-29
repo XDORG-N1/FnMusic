@@ -49,7 +49,16 @@ Handler buildApiHandler() {
     ..post('/event/report', _eventReport)
     ..get('/search/track', _searchTrack)
     ..get('/search/album', _searchAlbum)
-    ..get('/search/artist', _searchArtist);
+    ..get('/search/artist', _searchArtist)
+    ..get('/shared-library/list', _sharedLibraryList)
+    ..get('/shared-library/detail', _sharedLibraryDetail)
+    ..post('/shared-library/create', _sharedLibraryCreate)
+    ..post('/shared-library/edit', _sharedLibraryEdit)
+    ..post('/shared-library/delete', _sharedLibraryDelete)
+    ..post('/shared-library/scan', _sharedLibraryScan)
+    ..post('/shared-library/scan-all', _sharedLibraryScanAll)
+    ..post('/search/index/rebuild', _searchIndexRebuild)
+    ..get('/task/list', _taskList);
 
   return const Pipeline()
       .addMiddleware(logRequests())
@@ -257,6 +266,117 @@ Response _genreList(Request req) {
 Response _genreTracks(Request req) {
   final String? guid = req.url.queryParameters['genreGUID'];
   return _detailTracks(req, 'genreGUID', (MockTrack t) => t.genreGuids.contains(guid));
+}
+
+// ---------- 音乐库管理（网页 /music/settings?key=library） ----------
+
+Map<String, Object?> _libraryJson(MockLibrary lib) => <String, Object?>{
+      'guid': lib.guid,
+      'path': lib.path,
+      'name': lib.name,
+      'autoDownloadLyric': lib.autoDownloadLyric,
+      'metadataPreference': lib.metadataPreference,
+      'accessStatus': 0,
+      'contentLastChangedAt': lib.contentLastChangedAt,
+      'coverIds': <String>[],
+    };
+
+Response _sharedLibraryList(Request req) {
+  final List<Object?> list =
+      MockStore.instance.libraries.map(_libraryJson).toList();
+  return _json(_pageWrap(list, list.length, 1, list.length));
+}
+
+Response _sharedLibraryDetail(Request req) {
+  final MockLibrary? lib =
+      MockStore.instance.libraryByGuid(req.url.queryParameters['guid'] ?? '');
+  if (lib == null) return _err(100005, 'not found');
+  return _json(_libraryJson(lib));
+}
+
+Future<Response> _sharedLibraryCreate(Request req) async {
+  final Map<String, Object?> body = await _jsonBody(req);
+  final String path = body['path']?.toString().trim() ?? '';
+  if (path.isEmpty) return _err(100002, 'invalid arguments');
+  final MockStore store = MockStore.instance;
+  final MockLibrary lib = MockLibrary(
+    'lib_${store.libraries.length + 1}',
+    path,
+    metadataPreference:
+        body['metadataPreference']?.toString() ?? 'cloud_preferred',
+    autoDownloadLyric: body['autoDownloadLyric'] == true,
+  );
+  store.libraries.add(lib);
+  return _json(<String, Object?>{'guid': lib.guid});
+}
+
+Future<Response> _sharedLibraryEdit(Request req) async {
+  final Map<String, Object?> body = await _jsonBody(req);
+  final MockLibrary? lib =
+      MockStore.instance.libraryByGuid(body['guid']?.toString() ?? '');
+  if (lib == null) return _err(100005, 'not found');
+  final String path = body['path']?.toString().trim() ?? '';
+  if (path.isEmpty) return _err(100002, 'invalid arguments');
+  lib.path = path;
+  lib.metadataPreference =
+      body['metadataPreference']?.toString() ?? lib.metadataPreference;
+  if (body['autoDownloadLyric'] is bool) {
+    lib.autoDownloadLyric = body['autoDownloadLyric']! as bool;
+  }
+  return _json(<String, Object?>{'guid': lib.guid});
+}
+
+Future<Response> _sharedLibraryDelete(Request req) async {
+  final Map<String, Object?> body = await _jsonBody(req);
+  final MockStore store = MockStore.instance;
+  final int before = store.libraries.length;
+  store.libraries
+      .removeWhere((MockLibrary l) => l.guid == body['guid']?.toString());
+  if (store.libraries.length == before) return _err(100005, 'not found');
+  store.scanningGuids.remove(body['guid']?.toString());
+  return _json(<String, Object?>{'ok': true});
+}
+
+Future<Response> _sharedLibraryScan(Request req) async {
+  final Map<String, Object?> body = await _jsonBody(req);
+  final String guid = body['guid']?.toString() ?? '';
+  if (MockStore.instance.libraryByGuid(guid) == null) {
+    return _err(100005, 'not found');
+  }
+  MockStore.instance.scanningGuids.add(guid);
+  return _json(<String, Object?>{'ok': true});
+}
+
+Response _sharedLibraryScanAll(Request req) {
+  final MockStore store = MockStore.instance;
+  for (final MockLibrary lib in store.libraries) {
+    store.scanningGuids.add(lib.guid);
+  }
+  return _json(<String, Object?>{'ok': true});
+}
+
+Response _searchIndexRebuild(Request req) {
+  return _json(<String, Object?>{
+    'albumCount': albums.length,
+    'artistCount': artists.length,
+    'trackCount': tracks.length,
+  });
+}
+
+/// 任务列表：返回进行中的 `fileScan` 扫描任务（用于客户端展示扫描状态）。
+Response _taskList(Request req) {
+  final MockStore store = MockStore.instance;
+  final List<Object?> tasks = store.scanningGuids
+      .map((String guid) => <String, Object?>{
+            'guid': 'task_scan_$guid',
+            'type': 'fileScan',
+            'done': false,
+            'cancelling': false,
+            'createdAt': DateTime.now().millisecondsSinceEpoch,
+            'ext': <String, Object?>{'libraryGUID': guid},
+          })
+      .toList();
+  return _json(_pageWrap(tasks, tasks.length, 1, tasks.length));
 }
 
 Response _playlistList(Request req) {
