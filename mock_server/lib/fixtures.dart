@@ -1,4 +1,4 @@
-/// Mock 目录数据（歌曲 / 专辑 / 歌手 / 流派 / 歌单）。
+/// Mock 目录数据（歌曲 / 专辑 / 歌手 / 风格 / 歌单）。
 ///
 /// 字段与 FNOS 音乐 API 返回结构对齐（简化版），供客户端模型解析测试。
 
@@ -20,9 +20,10 @@ class MockArtist {
 }
 
 class MockGenre {
-  const MockGenre(this.guid, this.name);
+  const MockGenre(this.guid, this.name, this.coverId);
   final String guid;
   final String name;
+  final String coverId;
 }
 
 class MockTrack {
@@ -132,9 +133,9 @@ final List<MockArtist> artists = <MockArtist>[
 ];
 
 final List<MockGenre> genres = <MockGenre>[
-  const MockGenre('gen_001', '流行'),
-  const MockGenre('gen_002', '民谣'),
-  const MockGenre('gen_003', '古典'),
+  const MockGenre('gen_001', '流行', 'cov_g1'),
+  const MockGenre('gen_002', '民谣', 'cov_g2'),
+  const MockGenre('gen_003', '古典', 'cov_g3'),
 ];
 
 final List<MockTrack> tracks = <MockTrack>[

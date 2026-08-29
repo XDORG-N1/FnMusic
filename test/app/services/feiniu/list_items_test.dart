@@ -4,7 +4,7 @@ import 'package:fnmusic/app/services/feiniu/api_models.dart';
 
 /// `listItemsOf` 兼容解析：裸数组 与 分页 `{list, total}` 两种响应形态。
 ///
-/// 回归背景：专辑 / 歌手 / 流派 / 歌单「详情曲目」接口在真实 FNOS 上返回
+/// 回归背景：专辑 / 歌手 / 风格 / 歌单「详情曲目」接口在真实 FNOS 上返回
 /// 分页包裹 `{list, total}`，旧实现按裸 `List` 强转每次点击都抛 TypeError。
 void main() {
   group('listItemsOf', () {

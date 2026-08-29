@@ -241,9 +241,15 @@ Response _artistTracks(Request req) {
 }
 
 Response _genreList(Request req) {
-  // 与真实 FNOS 一致：data 为分页包裹 {list, total}。
+  // 与真实 FNOS 一致：data 为分页包裹 {list, total}；每个风格带 trackCount/coverId。
   final List<Object?> list = genres
-      .map((MockGenre g) => <String, Object?>{'guid': g.guid, 'name': g.name})
+      .map((MockGenre g) => <String, Object?>{
+            'guid': g.guid,
+            'name': g.name,
+            'coverId': g.coverId,
+            'trackCount':
+                tracks.where((MockTrack t) => t.genreGuids.contains(g.guid)).length,
+          })
       .toList();
   return _json(_pageWrap(list, list.length, 1, list.length));
 }

@@ -17,7 +17,7 @@ class LibraryPage extends StatelessWidget {
     _LibraryEntry(Icons.music_note_outlined, '全部歌曲', Colors.red, SongsPage.route),
     _LibraryEntry(Icons.album_outlined, '专辑', Colors.blue, AlbumsPage.route),
     _LibraryEntry(Icons.people_outline, '歌手', Colors.green, ArtistsPage.route),
-    _LibraryEntry(Icons.category_outlined, '流派', Colors.purple, GenresPage.route),
+    _LibraryEntry(Icons.category_outlined, '风格', Colors.purple, GenresPage.route),
     _LibraryEntry(Icons.queue_music, '歌单', Colors.orange, PlaylistsPage.route),
     _LibraryEntry(Icons.folder_outlined, '文件夹', Colors.teal, FoldersPage.route),
   ];

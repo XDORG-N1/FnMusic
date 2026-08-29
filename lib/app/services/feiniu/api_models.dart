@@ -7,7 +7,7 @@ library;
 ///
 /// 真实 FNOS 的列表接口统一返回分页包裹 `{list, total}`，个别接口 / 旧版本
 /// 返回裸数组。旧实现按裸 `List` 强转在分页结构下抛 TypeError（如专辑 / 歌手 /
-/// 流派 / 歌单详情曲目），这里两种形态都兼容。
+/// 风格 / 歌单详情曲目），这里两种形态都兼容。
 List<Object?> listItemsOf(Object? data) {
   if (data is List) return data;
   if (data is Map) {
@@ -145,17 +145,30 @@ class FnAlbum {
   }
 }
 
-/// 流派。
+/// 风格。
 class FnGenre {
-  const FnGenre({required this.guid, required this.name});
+  const FnGenre({
+    required this.guid,
+    required this.name,
+    this.trackCount = 0,
+    this.coverId,
+  });
 
   final String guid;
   final String name;
+
+  /// 该风格下曲目数（真实 FNOS `/genre/list` 返回 `trackCount`）。
+  final int trackCount;
+
+  /// 风格封面（真实 FNOS `/genre/list` 返回 `coverId`）。
+  final String? coverId;
 
   factory FnGenre.fromJson(Map<String, Object?> json) {
     return FnGenre(
       guid: json['guid'] as String? ?? '',
       name: json['name'] as String? ?? '',
+      trackCount: (json['trackCount'] as num?)?.toInt() ?? 0,
+      coverId: json['coverId'] as String?,
     );
   }
 }
