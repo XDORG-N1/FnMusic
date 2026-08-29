@@ -5,5 +5,5 @@
 abstract class AppInfo {
   static const String name = 'FnMusic';
   static const String displayName = '飞牛音乐';
-  static const String version = '1.0.0+1';
+  static const String version = '1.0.4+5';
 }
