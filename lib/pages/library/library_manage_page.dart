@@ -120,7 +120,9 @@ class _LibraryManagePageState extends State<LibraryManagePage> {
   Future<void> _openAddDialog() async {
     final _LibraryFormResult? result = await showDialog<_LibraryFormResult>(
       context: context,
-      builder: (_) => const _LibraryEditDialog(),
+      builder: (_) => _LibraryEditDialog(
+        disabledPaths: _libraries.map((FnLibrary l) => l.path).toList(),
+      ),
     );
     if (result == null || !mounted) return;
     await _runBusy(
@@ -137,7 +139,10 @@ class _LibraryManagePageState extends State<LibraryManagePage> {
     final _LibraryFormResult? result =
         await showDialog<_LibraryFormResult>(
       context: context,
-      builder: (_) => _LibraryEditDialog(initial: library),
+      builder: (_) => _LibraryEditDialog(
+        initial: library,
+        disabledPaths: _libraries.map((FnLibrary l) => l.path).toList(),
+      ),
     );
     if (result == null || !mounted) return;
     await _runBusy(
@@ -445,17 +450,27 @@ class _ActionButton extends StatelessWidget {
 }
 
 /// 新建 / 编辑音乐库的表单对话框。
+///
+/// 「音乐库路径」参考网页版 `/music/settings?key=library` 的音乐文件夹编辑：
+/// 点击路径字段打开文件夹选择器，展示 fnOS 语义化路径（存储空间 / 外接存储…），
+/// 禁止选择已添加为音乐库的文件夹。
 class _LibraryEditDialog extends StatefulWidget {
-  const _LibraryEditDialog({this.initial});
+  const _LibraryEditDialog({
+    this.initial,
+    this.disabledPaths = const <String>[],
+  });
 
   final FnLibrary? initial;
+
+  /// 已添加为音乐库的路径（选择器中禁用 / 标记「已添加」）。
+  final List<String> disabledPaths;
 
   @override
   State<_LibraryEditDialog> createState() => _LibraryEditDialogState();
 }
 
 class _LibraryEditDialogState extends State<_LibraryEditDialog> {
-  late final TextEditingController _pathController;
+  late String _selectedPath;
   late String _metadataPreference;
   late bool _autoDownloadLyric;
   String? _pathError;
@@ -463,23 +478,16 @@ class _LibraryEditDialogState extends State<_LibraryEditDialog> {
   @override
   void initState() {
     super.initState();
-    _pathController =
-        TextEditingController(text: widget.initial?.path ?? '');
+    _selectedPath = widget.initial?.path ?? '';
     _metadataPreference = widget.initial?.metadataPreference ??
         FnMetadataPreference.cloudPreferred;
     _autoDownloadLyric = widget.initial?.autoDownloadLyric ?? false;
   }
 
-  @override
-  void dispose() {
-    _pathController.dispose();
-    super.dispose();
-  }
-
   void _submit() {
-    final String path = _pathController.text.trim();
+    final String path = _selectedPath.trim();
     if (path.isEmpty) {
-      setState(() => _pathError = '请填写音乐库路径');
+      setState(() => _pathError = '请选择文件夹路径');
       return;
     }
     Navigator.of(context).pop(_LibraryFormResult(
@@ -487,6 +495,20 @@ class _LibraryEditDialogState extends State<_LibraryEditDialog> {
       metadataPreference: _metadataPreference,
       autoDownloadLyric: _autoDownloadLyric,
     ));
+  }
+
+  Future<void> _openPicker() async {
+    final String? picked = await showDialog<String>(
+      context: context,
+      builder: (_) => _FolderPickerDialog(
+        disabledPaths: widget.disabledPaths,
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _selectedPath = picked;
+      _pathError = null;
+    });
   }
 
   @override
@@ -499,17 +521,14 @@ class _LibraryEditDialogState extends State<_LibraryEditDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            TextField(
-              controller: _pathController,
-              decoration: InputDecoration(
-                labelText: '音乐库路径',
-                hintText: '/volume1/media/Music',
-                errorText: _pathError,
-                prefixIcon: const Icon(Icons.folder_outlined),
-              ),
-              onChanged: (_) {
-                if (_pathError != null) setState(() => _pathError = null);
-              },
+            Text('音乐库路径',
+                style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 8),
+            _FolderPathField(
+              selectedPath: _selectedPath,
+              onTap: _openPicker,
+              errorText: _pathError,
             ),
             const SizedBox(height: 16),
             Text('元数据偏好',
@@ -559,6 +578,308 @@ class _LibraryEditDialogState extends State<_LibraryEditDialog> {
           child: const Text('取消'),
         ),
         FilledButton(onPressed: _submit, child: const Text('保存')),
+      ],
+    );
+  }
+}
+
+/// 音乐库路径字段：可点击的文件夹选择控件（参考网页版「音乐文件夹」编辑）。
+///
+/// 显示语义化路径（`存储空间 1/media/Music`），未选择时显示占位符；
+/// 点击打开 `_FolderPickerDialog` 浏览并选择文件夹。
+class _FolderPathField extends StatelessWidget {
+  const _FolderPathField({
+    required this.selectedPath,
+    required this.onTap,
+    this.errorText,
+  });
+
+  final String selectedPath;
+  final VoidCallback onTap;
+  final String? errorText;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+    final bool hasPath = selectedPath.trim().isNotEmpty;
+    final bool hasError = errorText != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Material(
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onTap,
+            child: Container(
+              height: 46,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: hasError ? scheme.error : scheme.outlineVariant,
+                ),
+              ),
+              child: Row(
+                children: <Widget>[
+                  Icon(Icons.folder_outlined,
+                      size: 20,
+                      color: hasError ? scheme.error : scheme.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      hasPath ? semanticPathOf(selectedPath) : '请选择文件夹',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: hasError
+                            ? scheme.error
+                            : (hasPath
+                                ? scheme.onSurface
+                                : scheme.onSurfaceVariant),
+                        fontWeight: hasPath ? FontWeight.w500 : FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, size: 20, color: scheme.outline),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (hasError) ...<Widget>[
+          const SizedBox(height: 6),
+          Text(errorText!, style: TextStyle(fontSize: 12, color: scheme.error)),
+        ],
+      ],
+    );
+  }
+}
+
+/// 文件夹选择器对话框（对应网页版「音乐文件夹」编辑的目录浏览）。
+///
+/// 顶层列出授权目录（`GET /app-center/authed-dir/list`），点击进入子目录
+/// （`GET /app-center/authed-dir/sub/list?parent=`），面包屑可逐级返回；
+/// 「选择此文件夹」确认当前目录。已添加为音乐库的路径标记「已添加」且不可选中。
+class _FolderPickerDialog extends StatefulWidget {
+  const _FolderPickerDialog({required this.disabledPaths});
+
+  final List<String> disabledPaths;
+
+  @override
+  State<_FolderPickerDialog> createState() => _FolderPickerDialogState();
+}
+
+class _FolderPickerDialogState extends State<_FolderPickerDialog> {
+  /// 当前浏览的目录路径（`''` = 授权目录根列表）。
+  String _path = '';
+  List<FnDirectory> _entries = const <FnDirectory>[];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load(_path);
+  }
+
+  Future<void> _load(String path) async {
+    setState(() {
+      _path = path;
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final List<FnDirectory> entries = path.isEmpty
+          ? await FnLibraryService.instance.fetchAuthorizedDirectories()
+          : await FnLibraryService.instance.fetchSubDirectories(path);
+      if (!mounted) return;
+      setState(() {
+        _entries = entries;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e is ApiException ? e.friendlyMessage : '加载失败，请重试';
+      });
+    }
+  }
+
+  void _confirm() {
+    if (_path.trim().isEmpty) return;
+    Navigator.of(context).pop(_path);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+    final bool isDisabledPath = widget.disabledPaths.contains(_path);
+    return AlertDialog(
+      title: const Text('选择文件夹'),
+      content: SizedBox(
+        width: 420,
+        height: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            _buildBreadcrumb(theme),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            Expanded(child: _buildBody(theme, scheme)),
+            const SizedBox(height: 4),
+            _buildFooter(theme, scheme, isDisabledPath),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 面包屑：`根 / 存储空间 1 / media / Music`，点击逐级返回。
+  Widget _buildBreadcrumb(ThemeData theme) {
+    final List<String> segs =
+        _path.split('/').where((String s) => s.isNotEmpty).toList();
+    final List<Widget> chips = <Widget>[
+      _crumb(theme, '', '根', isLast: segs.isEmpty),
+    ];
+    String acc = '';
+    for (int i = 0; i < segs.length; i++) {
+      acc += '/${segs[i]}';
+      chips.add(_crumb(
+        theme,
+        acc,
+        i == 0 ? semanticPathOf(acc) : segs[i],
+        isLast: i == segs.length - 1,
+      ));
+    }
+    return SizedBox(
+      height: 40,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: chips),
+      ),
+    );
+  }
+
+  Widget _crumb(ThemeData theme, String path, String label,
+      {required bool isLast}) {
+    final ColorScheme scheme = theme.colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: isLast ? null : () => _load(path),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: isLast ? scheme.onSurface : scheme.primary,
+                fontWeight: isLast ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+          ),
+        ),
+        if (!isLast)
+          Icon(Icons.chevron_right, size: 14, color: scheme.outline),
+      ],
+    );
+  }
+
+  Widget _buildBody(ThemeData theme, ColorScheme scheme) {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text(_error!, textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              onPressed: () => _load(_path),
+              icon: const Icon(Icons.refresh),
+              label: const Text('重试'),
+            ),
+          ],
+        ),
+      );
+    }
+    if (_entries.isEmpty) {
+      return Center(
+        child: Text('此文件夹为空',
+            style: TextStyle(color: scheme.onSurfaceVariant)),
+      );
+    }
+    // 顶层行展示语义化路径（存储空间 1 / 外接存储…，与网页版一致）；
+    // 子目录行展示目录名。
+    final bool isRoot = _path.isEmpty;
+    return ListView.separated(
+      itemCount: _entries.length,
+      separatorBuilder: (_, _) => const Divider(height: 1),
+      itemBuilder: (BuildContext context, int index) {
+        final FnDirectory dir = _entries[index];
+        final bool disabled = widget.disabledPaths.contains(dir.path);
+        final String label = isRoot
+            ? semanticPathOf(dir.path)
+            : (dir.name.trim().isNotEmpty ? dir.name : semanticPathOf(dir.path));
+        return ListTile(
+          dense: true,
+          leading: Icon(
+            Icons.folder_outlined,
+            color: disabled ? scheme.outline : scheme.primary,
+          ),
+          title: Text(
+            label,
+            style: TextStyle(color: disabled ? scheme.outline : null),
+          ),
+          trailing: disabled
+              ? Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text('已添加',
+                      style: TextStyle(fontSize: 11, color: scheme.outline)),
+                )
+              : Icon(Icons.chevron_right, color: scheme.outlineVariant),
+          onTap: () => _load(dir.path),
+        );
+      },
+    );
+  }
+
+  Widget _buildFooter(
+      ThemeData theme, ColorScheme scheme, bool isDisabledPath) {
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: isDisabledPath
+              ? Text('该文件夹已添加为音乐库',
+                  style: TextStyle(fontSize: 12, color: scheme.error))
+              : const SizedBox.shrink(),
+        ),
+        const SizedBox(width: 12),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: (_path.trim().isEmpty || isDisabledPath)
+              ? null
+              : _confirm,
+          child: const Text('选择此文件夹'),
+        ),
       ],
     );
   }

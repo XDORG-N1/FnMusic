@@ -48,6 +48,41 @@ class FnLibraryService {
   @visibleForTesting
   static Future<void> Function()? rebuildIndexOverride;
 
+  @visibleForTesting
+  static Future<List<FnDirectory>> Function()? fetchAuthorizedDirectoriesOverride;
+
+  @visibleForTesting
+  static Future<List<FnDirectory>> Function(String parent)?
+      fetchSubDirectoriesOverride;
+
+  /// 授权目录根（文件夹选择器顶层数据源）。
+  ///
+  /// 真实 FNOS：`GET /app-center/authed-dir/list`，响应 `{list:[{path,name,storageType}]}`。
+  /// 经官方 Web SPA 的 `F.appCenter.authedDirList` 逆向确认。
+  Future<List<FnDirectory>> fetchAuthorizedDirectories() async {
+    if (fetchAuthorizedDirectoriesOverride != null) {
+      return fetchAuthorizedDirectoriesOverride!();
+    }
+    final dynamic data =
+        await ApiClient.instance.getData('/app-center/authed-dir/list');
+    return _parseDirectories(data);
+  }
+
+  /// 某目录下的子目录（文件夹选择器展开）。
+  ///
+  /// 真实 FNOS：`GET /app-center/authed-dir/sub/list?parent=<path>`，
+  /// 响应 `{list:[{path,name}]}`。
+  Future<List<FnDirectory>> fetchSubDirectories(String parent) async {
+    if (fetchSubDirectoriesOverride != null) {
+      return fetchSubDirectoriesOverride!(parent);
+    }
+    final dynamic data = await ApiClient.instance.getData(
+      '/app-center/authed-dir/sub/list',
+      query: <String, Object?>{'parent': parent},
+    );
+    return _parseDirectories(data);
+  }
+
   /// 音乐库列表。响应可能是 `{list}` / `{items}` / `{rows}` / `{libraries}`。
   Future<List<FnLibrary>> fetchLibraries() async {
     if (fetchLibrariesOverride != null) return fetchLibrariesOverride!();
@@ -202,6 +237,16 @@ class FnLibraryService {
         .map((Map<Object?, Object?> m) =>
             FnLibrary.fromJson(m.cast<String, Object?>()))
         .where((FnLibrary l) => l.guid.isNotEmpty && l.path.isNotEmpty)
+        .toList();
+  }
+
+  List<FnDirectory> _parseDirectories(dynamic data) {
+    final List<Object?> raw = listItemsOf(data);
+    return raw
+        .whereType<Map<Object?, Object?>>()
+        .map((Map<Object?, Object?> m) =>
+            FnDirectory.fromJson(m.cast<String, Object?>()))
+        .where((FnDirectory d) => d.path.isNotEmpty)
         .toList();
   }
 

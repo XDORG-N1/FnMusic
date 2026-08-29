@@ -294,6 +294,91 @@ Map<String, Object?> _mapField(Object? value) {
   return const <String, Object?>{};
 }
 
+/// 文件目录节点（文件夹选择器数据源）。
+///
+/// 来自 `GET /app-center/authed-dir/list`（授权目录根）与
+/// `GET /app-center/authed-dir/sub/list?parent=`（子目录），字段 `{path, name, storageType}`。
+/// 子目录响应通常只有 `{path, name}`，storageType 缺失时按 3（存储空间）兜底。
+class FnDirectory {
+  const FnDirectory({
+    required this.path,
+    required this.name,
+    this.storageType = 3,
+  });
+
+  final String path;
+  final String name;
+
+  /// 0=外接存储, 1=他人共享, 2=远程挂载, 3=存储空间, 4=应用文件。
+  final int storageType;
+
+  factory FnDirectory.fromJson(Map<String, Object?> json) {
+    return FnDirectory(
+      path: json['path'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      storageType: (json['storageType'] as num?)?.toInt() ?? 3,
+    );
+  }
+}
+
+/// fnOS 路径语义化（对齐网页版 pathFormatter）。
+///
+/// 顶层目录前缀（真实 fnOS）：
+/// - `/vol1`…（`vol` + 数字，主存储）→ `存储空间 {id}`
+/// - `/vol1/{uid}/…` → `存储空间 {id}/我的文件|用户{uid} 的文件/…`
+/// - `/vol1/@appshare` → `应用文件`，`/vol1/@team` → `团队文件`
+/// - `/vol00…` → `外接存储`，`/vol01…` → `他人共享`，`/vol02…` → `远程挂载`
+/// - 其余无法识别 → 原样返回。
+String semanticPathOf(String raw) {
+  final String p = raw.replaceAll('\\', '/').trimRight();
+  final List<String> segs = p.split('/').where((String s) => s.isNotEmpty).toList();
+  if (segs.isEmpty) return raw;
+  final String first = segs.first;
+
+  // 外接存储 / 他人共享 / 远程挂载（顶层即特例前缀）。
+  final Map<String, String> topLabels = <String, String>{
+    'vol00': '外接存储',
+    'vol01': '他人共享',
+    'vol02': '远程挂载',
+  };
+  for (final MapEntry<String, String> entry in topLabels.entries) {
+    if (first.startsWith(entry.key)) {
+      final String rest = segs.sublist(1).join('/');
+      return rest.isEmpty ? entry.value : '${entry.value}/$rest';
+    }
+  }
+
+  // 主存储 `vol{N}`。
+  if (first.startsWith('vol') && first.length > 3) {
+    final int? id = int.tryParse(first.substring(3));
+    if (id != null) {
+      final String base = '存储空间 $id';
+      if (segs.length >= 2) {
+        final String second = segs[1];
+        if (second == '@appshare') {
+          final String rest = segs.sublist(2).join('/');
+          return rest.isEmpty ? '应用文件' : '应用文件/$rest';
+        }
+        if (second == '@team') {
+          final String rest = segs.sublist(2).join('/');
+          return rest.isEmpty ? '团队文件' : '团队文件/$rest';
+        }
+        final int? uid = int.tryParse(second);
+        if (uid != null) {
+          final String rest = segs.sublist(2).join('/');
+          // 1000 为 fnOS 默认管理员 uid，对应「我的文件」。
+          final String user = uid == 1000 ? '我的文件' : '用户$uid 的文件';
+          return rest.isEmpty ? '$base/$user' : '$base/$user/$rest';
+        }
+        final String rest = segs.sublist(1).join('/');
+        return '$base/$rest';
+      }
+      return base;
+    }
+  }
+  return raw;
+}
+
 /// 音频规格。
 class FnAudioSpec {
   const FnAudioSpec({

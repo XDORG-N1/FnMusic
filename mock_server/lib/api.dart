@@ -58,7 +58,9 @@ Handler buildApiHandler() {
     ..post('/shared-library/scan', _sharedLibraryScan)
     ..post('/shared-library/scan-all', _sharedLibraryScanAll)
     ..post('/search/index/rebuild', _searchIndexRebuild)
-    ..get('/task/list', _taskList);
+    ..get('/task/list', _taskList)
+    ..get('/app-center/authed-dir/list', _authedDirList)
+    ..get('/app-center/authed-dir/sub/list', _authedDirSubList);
 
   return const Pipeline()
       .addMiddleware(logRequests())
@@ -377,6 +379,46 @@ Response _taskList(Request req) {
           })
       .toList();
   return _json(_pageWrap(tasks, tasks.length, 1, tasks.length));
+}
+
+// ---------- 文件夹选择器（网页版「音乐文件夹」编辑的目录浏览） ----------
+
+Map<String, Object?> _dirJson(MockDirectory dir) => <String, Object?>{
+      'path': dir.path,
+      'name': dir.name,
+      'storageType': dir.storageType,
+    };
+
+/// 授权目录根列表：`GET /app-center/authed-dir/list`。
+///
+/// 与真实 FNOS 一致：`data.list` 为顶层授权目录（存储空间 / 外接 / 共享 / 远程挂载）。
+Response _authedDirList(Request req) {
+  final MockStore store = MockStore.instance;
+  final List<Object?> roots = store.directories
+      .where((MockDirectory d) =>
+          d.path.split('/').where((String s) => s.isNotEmpty).length == 1)
+      .map(_dirJson)
+      .toList();
+  return _json(<String, Object?>{'list': roots, 'total': roots.length});
+}
+
+/// 子目录列表：`GET /app-center/authed-dir/sub/list?parent=<path>`。
+///
+/// 与真实 FNOS 一致：`data.list` 为 parent 的直接子目录（仅目录）；缺 parent 返回 100002。
+Response _authedDirSubList(Request req) {
+  final String? parent = req.url.queryParameters['parent']?.toString();
+  if (parent == null || parent.isEmpty) return _err(100002, 'invalid arguments');
+  final MockStore store = MockStore.instance;
+  final String base = parent.replaceAll(RegExp(r'/+$'), '');
+  final List<Object?> children = store.directories
+      .where((MockDirectory d) {
+        if (!d.path.startsWith('$base/')) return false;
+        final String rest = d.path.substring(base.length + 1);
+        return !rest.contains('/');
+      })
+      .map(_dirJson)
+      .toList();
+  return _json(<String, Object?>{'list': children, 'total': children.length});
 }
 
 Response _playlistList(Request req) {

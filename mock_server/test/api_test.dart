@@ -128,6 +128,52 @@ void main() {
     });
   });
 
+  group('文件夹选择器（app-center authed-dir）', () {
+    test('授权目录根 + 子目录：顶层仅返回根，parent 只返回直接子目录', () async {
+      final String token = await loginToken();
+
+      final (int, Map<String, Object?>) roots =
+          await call('GET', '/app-center/authed-dir/list', headers: auth(token));
+      expect(roots.$2['code'], 0);
+      final List<Object?> rootList =
+          (dataOf(roots)['list']! as List<Object?>).cast<Object?>();
+      // 顶层只有根路径（/vol1、/vol00…），不含子目录。
+      expect(rootList, isNotEmpty);
+      for (final Object? item in rootList) {
+        final Map<String, Object?> dir =
+            (item! as Map<Object?, Object?>).cast<String, Object?>();
+        // 顶层根路径只有一段（/vol1、/vol00…）。
+        expect(dir['path']!.toString().split('/').where((String s) => s.isNotEmpty).length, 1);
+        expect(dir['name'], isNotEmpty);
+      }
+
+      // parent=/vol1 → 直接子目录（media/downloads/1000/@appshare），不含 Music 等深层。
+      final (int, Map<String, Object?>) sub = await call(
+        'GET',
+        '/app-center/authed-dir/sub/list?parent=/vol1',
+        headers: auth(token),
+      );
+      expect(sub.$2['code'], 0);
+      final List<Object?> subList =
+          (dataOf(sub)['list']! as List<Object?>).cast<Object?>();
+      expect(subList, isNotEmpty);
+      for (final Object? item in subList) {
+        final Map<String, Object?> dir =
+            (item! as Map<Object?, Object?>).cast<String, Object?>();
+        expect(dir['path'], startsWith('/vol1/'));
+        expect(dir['path']!.toString().split('/').length, 3);
+      }
+
+      // 缺 parent → 100002。
+      final (int, Map<String, Object?>) bad = await call(
+        'GET',
+        '/app-center/authed-dir/sub/list',
+        headers: auth(token),
+      );
+      expect(bad.$2['code'], 100002);
+    });
+  });
+
   group('漫游随机播放', () {
     Map<String, Object?> currentOf(Map<String, Object?> r) =>
         (r['current'] as Map<Object?, Object?>).cast<String, Object?>();

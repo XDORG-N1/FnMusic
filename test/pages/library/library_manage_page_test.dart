@@ -24,6 +24,33 @@ FnLibrary _lib(
   });
 }
 
+/// 文件夹选择器目录树（根 key 为 `''`）。
+Map<String, List<FnDirectory>> _dirTree() {
+  return <String, List<FnDirectory>>{
+    '': const <FnDirectory>[
+      FnDirectory(path: '/vol1', name: 'volume1', storageType: 3),
+      FnDirectory(path: '/vol00', name: '外接存储', storageType: 0),
+    ],
+    '/vol1': const <FnDirectory>[
+      FnDirectory(path: '/vol1/media', name: 'media'),
+      FnDirectory(path: '/vol1/downloads', name: 'downloads'),
+    ],
+    '/vol1/media': const <FnDirectory>[
+      FnDirectory(path: '/vol1/media/Music', name: 'Music'),
+      FnDirectory(path: '/vol1/media/Movies', name: 'Movies'),
+    ],
+    '/vol1/media/Movies': const <FnDirectory>[],
+  };
+}
+
+/// 装配文件夹选择器覆盖钩子。
+void _stubDirTree(Map<String, List<FnDirectory>> tree) {
+  FnLibraryService.fetchAuthorizedDirectoriesOverride = () async =>
+      tree[''] ?? const <FnDirectory>[];
+  FnLibraryService.fetchSubDirectoriesOverride = (String parent) async =>
+      tree[parent] ?? const <FnDirectory>[];
+}
+
 void main() {
   List<FnLibrary> libs = <FnLibrary>[];
   Set<String> scanning = <String>{};
@@ -39,6 +66,8 @@ void main() {
     FnLibraryService.scanLibraryOverride = null;
     FnLibraryService.scanAllLibrariesOverride = null;
     FnLibraryService.rebuildIndexOverride = null;
+    FnLibraryService.fetchAuthorizedDirectoriesOverride = null;
+    FnLibraryService.fetchSubDirectoriesOverride = null;
   });
 
   tearDown(() {
@@ -50,6 +79,8 @@ void main() {
     FnLibraryService.scanLibraryOverride = null;
     FnLibraryService.scanAllLibrariesOverride = null;
     FnLibraryService.rebuildIndexOverride = null;
+    FnLibraryService.fetchAuthorizedDirectoriesOverride = null;
+    FnLibraryService.fetchSubDirectoriesOverride = null;
   });
 
   /// 装配页面：列表与扫描状态均走覆盖钩子。
@@ -64,14 +95,14 @@ void main() {
 
   testWidgets('渲染音乐库卡片：名称 + 路径 + 更新于 + 动作按钮', (WidgetTester tester) async {
     libs = <FnLibrary>[
-      _lib('lib_001', '/volume1/media/Music', name: 'NAS 音乐库', changedAt: 1700000000),
-      _lib('lib_002', '/volume1/downloads/音乐'),
+      _lib('lib_001', '/vol1/media/Music', name: 'NAS 音乐库', changedAt: 1700000000),
+      _lib('lib_002', '/vol1/downloads/音乐'),
     ];
     await pumpPage(tester);
 
     expect(find.text('NAS 音乐库'), findsOneWidget);
-    expect(find.text('/volume1/media/Music'), findsOneWidget);
-    expect(find.text('/volume1/downloads/音乐'), findsOneWidget);
+    expect(find.text('/vol1/media/Music'), findsOneWidget);
+    expect(find.text('/vol1/downloads/音乐'), findsOneWidget);
     // 无 name 时回退路径末段。
     expect(find.text('音乐'), findsWidgets);
     expect(find.textContaining('更新于'), findsOneWidget);
@@ -81,7 +112,7 @@ void main() {
   });
 
   testWidgets('扫描中的音乐库显示「扫描中」徽章且扫描按钮禁用', (WidgetTester tester) async {
-    libs = <FnLibrary>[_lib('lib_001', '/volume1/media/Music', name: 'NAS 音乐库')];
+    libs = <FnLibrary>[_lib('lib_001', '/vol1/media/Music', name: 'NAS 音乐库')];
     scanning = <String>{'lib_001'};
     FnLibraryService.fetchLibrariesOverride = () async => libs;
     FnLibraryService.activeScanGuidsOverride = () async => scanning;
@@ -113,7 +144,7 @@ void main() {
     FnLibraryService.fetchLibrariesOverride = () async {
       calls++;
       if (calls == 1) throw ApiException(100002, '');
-      return <FnLibrary>[_lib('lib_001', '/volume1/media/Music', name: 'NAS 音乐库')];
+      return <FnLibrary>[_lib('lib_001', '/vol1/media/Music', name: 'NAS 音乐库')];
     };
     FnLibraryService.activeScanGuidsOverride = () async => <String>{};
     await tester.pumpWidget(const MaterialApp(home: LibraryManagePage()));
@@ -126,8 +157,9 @@ void main() {
     expect(find.text('NAS 音乐库'), findsOneWidget);
   });
 
-  testWidgets('添加音乐库：空路径校验 + 提交调用 create 并刷新列表', (WidgetTester tester) async {
-    libs = <FnLibrary>[_lib('lib_001', '/volume1/media/Music', name: 'NAS 音乐库')];
+  testWidgets('添加音乐库：空路径校验 + 文件夹选择器 + 提交 create 并刷新', (WidgetTester tester) async {
+    libs = <FnLibrary>[_lib('lib_001', '/vol1/media/Existing', name: 'NAS 音乐库')];
+    _stubDirTree(_dirTree());
     String? createdPath;
     String? createdPref;
     bool? createdLyric;
@@ -139,7 +171,10 @@ void main() {
       createdPath = path;
       createdPref = metadataPreference;
       createdLyric = autoDownloadLyric;
-      libs.add(_lib('lib_new', path, name: '新音乐库', pref: metadataPreference, autoDownloadLyric: autoDownloadLyric));
+      libs.add(_lib('lib_new', path,
+          name: '新音乐库',
+          pref: metadataPreference,
+          autoDownloadLyric: autoDownloadLyric));
     };
     await pumpPage(tester);
 
@@ -150,26 +185,46 @@ void main() {
     // 空路径 → 本地校验错误，不提交。
     await tester.tap(find.text('保存'));
     await tester.pumpAndSettle();
-    expect(find.text('请填写音乐库路径'), findsOneWidget);
+    expect(find.text('请选择文件夹路径'), findsOneWidget);
     expect(createdPath, isNull);
 
-    // 填写路径 + 选「仅本地」+ 开启自动下载歌词。
-    await tester.enterText(find.byType(TextField), '  /volume1/new/Music  ');
+    // 打开文件夹选择器 → 顶层授权目录（语义化标签）。
+    await tester.tap(find.text('请选择文件夹'));
+    await tester.pumpAndSettle();
+    expect(find.text('选择文件夹'), findsOneWidget);
+    expect(find.text('存储空间 1'), findsOneWidget);
+    expect(find.text('外接存储'), findsOneWidget);
+
+    // 逐级进入 /vol1 → media → Music，选择此文件夹。
+    await tester.tap(find.text('存储空间 1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('media'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Music'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('选择此文件夹'));
+    await tester.pumpAndSettle();
+
+    // 字段回填语义化路径。
+    expect(find.text('存储空间 1/media/Music'), findsOneWidget);
+
+    // 选「仅本地」+ 开启自动下载歌词。
     await tester.tap(find.text('仅本地'));
     await tester.tap(find.byType(Switch));
     await tester.pumpAndSettle();
     await tester.tap(find.text('保存'));
     await tester.pumpAndSettle();
 
-    expect(createdPath, '/volume1/new/Music');
+    expect(createdPath, '/vol1/media/Music');
     expect(createdPref, FnMetadataPreference.localOnly);
     expect(createdLyric, isTrue);
     // 列表已刷新。
     expect(find.text('新音乐库'), findsOneWidget);
   });
 
-  testWidgets('编辑音乐库：对话框预填路径并提交 update', (WidgetTester tester) async {
-    libs = <FnLibrary>[_lib('lib_001', '/volume1/media/Music', name: 'NAS 音乐库')];
+  testWidgets('编辑音乐库：预填语义化路径，选择器禁用已添加文件夹', (WidgetTester tester) async {
+    libs = <FnLibrary>[_lib('lib_001', '/vol1/media/Music', name: 'NAS 音乐库')];
+    _stubDirTree(_dirTree());
     String? editedGuid;
     String? editedPath;
     FnLibraryService.updateLibraryOverride = ({
@@ -186,21 +241,37 @@ void main() {
     await tester.tap(find.byTooltip('编辑'));
     await tester.pumpAndSettle();
     expect(find.text('编辑音乐库'), findsOneWidget);
-    final TextField pathField = tester.widget<TextField>(find.byType(TextField));
-    expect(pathField.controller?.text, '/volume1/media/Music'); // 预填
+    // 预填：字段显示语义化路径。
+    expect(find.text('存储空间 1/media/Music'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), '/volume1/updated');
+    // 打开选择器 → /vol1 → media：Music 已添加（禁用），同级换选 Movies。
+    await tester.tap(find.text('存储空间 1/media/Music'));
+    await tester.pumpAndSettle();
+    expect(find.text('选择文件夹'), findsOneWidget);
+    await tester.tap(find.text('存储空间 1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('media'));
+    await tester.pumpAndSettle();
+    expect(find.text('Music'), findsOneWidget);
+    expect(find.text('已添加'), findsOneWidget);
+
+    await tester.tap(find.text('Movies'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('选择此文件夹'));
+    await tester.pumpAndSettle();
+    expect(find.text('存储空间 1/media/Movies'), findsOneWidget);
+
     await tester.tap(find.text('保存'));
     await tester.pumpAndSettle();
 
     expect(editedGuid, 'lib_001');
-    expect(editedPath, '/volume1/updated');
+    expect(editedPath, '/vol1/media/Movies');
   });
 
   testWidgets('删除音乐库：取消不删，确认调用 delete 并移除', (WidgetTester tester) async {
     libs = <FnLibrary>[
-      _lib('lib_001', '/volume1/media/Music', name: 'NAS 音乐库'),
-      _lib('lib_002', '/volume1/downloads/音乐'),
+      _lib('lib_001', '/vol1/media/Music', name: 'NAS 音乐库'),
+      _lib('lib_002', '/vol1/downloads/音乐'),
     ];
     String? deletedGuid;
     FnLibraryService.deleteLibraryOverride = (String guid) async {
@@ -230,7 +301,7 @@ void main() {
   });
 
   testWidgets('扫描音乐库调用 scan 并轮询扫描状态', (WidgetTester tester) async {
-    libs = <FnLibrary>[_lib('lib_001', '/volume1/media/Music', name: 'NAS 音乐库')];
+    libs = <FnLibrary>[_lib('lib_001', '/vol1/media/Music', name: 'NAS 音乐库')];
     String? scannedGuid;
     FnLibraryService.scanLibraryOverride = (String guid) async {
       scannedGuid = guid;
@@ -248,7 +319,7 @@ void main() {
   });
 
   testWidgets('扫描全部 + 重建索引走对应覆盖钩子', (WidgetTester tester) async {
-    libs = <FnLibrary>[_lib('lib_001', '/volume1/media/Music', name: 'NAS 音乐库')];
+    libs = <FnLibrary>[_lib('lib_001', '/vol1/media/Music', name: 'NAS 音乐库')];
     bool scanAllCalled = false;
     bool rebuildCalled = false;
     FnLibraryService.scanAllLibrariesOverride = () async {

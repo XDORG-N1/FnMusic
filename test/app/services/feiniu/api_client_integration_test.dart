@@ -87,14 +87,23 @@ void main() {
     final List<FnLibrary> seeds = await service.fetchLibraries();
     expect(seeds, isNotEmpty);
 
+    // 文件夹选择器：授权目录根 + 子目录。
+    final List<FnDirectory> roots = await service.fetchAuthorizedDirectories();
+    expect(roots, isNotEmpty);
+    expect(roots.first.path, startsWith('/vol'));
+    final List<FnDirectory> sub =
+        await service.fetchSubDirectories(roots.first.path);
+    expect(sub, isNotEmpty);
+    expect(sub.first.path, startsWith(roots.first.path));
+
     // 新建。
     await service.createLibrary(
-      path: '/volume1/itest/Music',
+      path: '/vol1/itest/Music',
       metadataPreference: FnMetadataPreference.localOnly,
       autoDownloadLyric: true,
     );
     final FnLibrary created = (await service.fetchLibraries())
-        .firstWhere((FnLibrary l) => l.path == '/volume1/itest/Music');
+        .firstWhere((FnLibrary l) => l.path == '/vol1/itest/Music');
     expect(created.displayName, 'Music');
     expect(created.metadataPreference, FnMetadataPreference.localOnly);
     expect(created.autoDownloadLyric, isTrue);
@@ -102,13 +111,13 @@ void main() {
     // 编辑。
     await service.updateLibrary(
       guid: created.guid,
-      path: '/volume1/itest/改名',
+      path: '/vol1/itest/改名',
       metadataPreference: FnMetadataPreference.cloudPreferred,
       autoDownloadLyric: false,
     );
     final FnLibrary edited = (await service.fetchLibraries())
         .firstWhere((FnLibrary l) => l.guid == created.guid);
-    expect(edited.path, '/volume1/itest/改名');
+    expect(edited.path, '/vol1/itest/改名');
     expect(edited.displayName, '改名');
 
     // 扫描 → /task/list 出现该库的 fileScan 任务。

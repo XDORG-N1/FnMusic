@@ -15,6 +15,8 @@ void main() {
     FnLibraryService.scanLibraryOverride = null;
     FnLibraryService.scanAllLibrariesOverride = null;
     FnLibraryService.rebuildIndexOverride = null;
+    FnLibraryService.fetchAuthorizedDirectoriesOverride = null;
+    FnLibraryService.fetchSubDirectoriesOverride = null;
   });
 
   tearDown(() {
@@ -26,6 +28,8 @@ void main() {
     FnLibraryService.scanLibraryOverride = null;
     FnLibraryService.scanAllLibrariesOverride = null;
     FnLibraryService.rebuildIndexOverride = null;
+    FnLibraryService.fetchAuthorizedDirectoriesOverride = null;
+    FnLibraryService.fetchSubDirectoriesOverride = null;
   });
 
   group('FnLibrary 模型解析', () {
@@ -171,6 +175,68 @@ void main() {
         throwsA(isA<ApiException>()
             .having((ApiException e) => e.code, 'code', 100002)),
       );
+    });
+  });
+
+  group('FnDirectory 模型 + semanticPathOf', () {
+    test('FnDirectory 解析：path/name/storageType（子目录缺省按 3 兜底）', () {
+      final FnDirectory root = FnDirectory.fromJson(<String, Object?>{
+        'path': '/vol1',
+        'name': 'volume1',
+        'storageType': 3,
+      });
+      expect(root.path, '/vol1');
+      expect(root.name, 'volume1');
+      expect(root.storageType, 3);
+
+      final FnDirectory child = FnDirectory.fromJson(<String, Object?>{
+        'path': '/vol1/media',
+        'name': 'media',
+      });
+      expect(child.storageType, 3);
+      expect(
+        FnDirectory.fromJson(<String, Object?>{'path': '', 'name': 'x'}).path,
+        isEmpty,
+      );
+    });
+
+    test('semanticPathOf：主存储 / 我的文件 / 外接 / 共享 / 远程 / 应用 / 团队', () {
+      expect(semanticPathOf('/vol1'), '存储空间 1');
+      expect(semanticPathOf('/vol1/media/Music'), '存储空间 1/media/Music');
+      expect(semanticPathOf('/vol1/1000/音乐'), '存储空间 1/我的文件/音乐');
+      expect(semanticPathOf('/vol1/1001/音乐'), '存储空间 1/用户1001 的文件/音乐');
+      expect(semanticPathOf('/vol1/@appshare'), '应用文件');
+      expect(semanticPathOf('/vol1/@team/资料'), '团队文件/资料');
+      expect(semanticPathOf('/vol00'), '外接存储');
+      expect(semanticPathOf('/vol00/usb1'), '外接存储/usb1');
+      expect(semanticPathOf('/vol01/共享A'), '他人共享/共享A');
+      expect(semanticPathOf('/vol02/nas2'), '远程挂载/nas2');
+      // 无法识别的路径原样返回。
+      expect(semanticPathOf('/home/user'), '/home/user');
+      expect(semanticPathOf(''), '');
+    });
+  });
+
+  group('目录接口覆盖钩子', () {
+    test('fetchAuthorizedDirectories 走覆盖钩子', () async {
+      final List<FnDirectory> dirs = const <FnDirectory>[
+        FnDirectory(path: '/vol1', name: 'volume1', storageType: 3),
+      ];
+      FnLibraryService.fetchAuthorizedDirectoriesOverride = () async => dirs;
+      expect(await FnLibraryService.instance.fetchAuthorizedDirectories(), dirs);
+    });
+
+    test('fetchSubDirectories 走覆盖钩子并透传 parent', () async {
+      String? seenParent;
+      FnLibraryService.fetchSubDirectoriesOverride =
+          (String parent) async {
+        seenParent = parent;
+        return const <FnDirectory>[FnDirectory(path: '/vol1/media', name: 'media')];
+      };
+      final List<FnDirectory> dirs =
+          await FnLibraryService.instance.fetchSubDirectories('/vol1');
+      expect(seenParent, '/vol1');
+      expect(dirs.single.path, '/vol1/media');
     });
   });
 
