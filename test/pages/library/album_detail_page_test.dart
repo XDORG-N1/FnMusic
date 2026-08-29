@@ -87,9 +87,32 @@ void main() {
 
     expect(find.text('专辑A'), findsWidgets);
     expect(find.text('艺人1 等'), findsOneWidget);
-    expect(find.text('2首 · 2001'), findsOneWidget);
+    // 网页版元信息格式：共 N 首 · 发行于 YYYY。
+    expect(find.text('共 2 首 · 发行于 2001'), findsOneWidget);
     expect(find.text('歌1'), findsOneWidget);
     expect(find.text('歌2'), findsOneWidget);
+  });
+
+  testWidgets('网页版头部：专辑kicker + 播放全部按钮 + 发行于元信息', (WidgetTester tester) async {
+    await pumpDetail(tester, tracks: <FnTrack>[
+      _track(1, trackNo: 1, year: 2001),
+      _track(2, trackNo: 2, year: 2001),
+    ]);
+
+    // 仿网页：kicker「专辑」、主按钮「播放全部」、随机播放。
+    expect(find.text('专辑'), findsOneWidget);
+    expect(find.text('播放全部'), findsOneWidget);
+    expect(find.byIcon(Icons.shuffle), findsOneWidget);
+
+    // 元信息为网页文案「共 N 首 · 发行于 YYYY」。
+    expect(find.text('共 2 首 · 发行于 2001'), findsOneWidget);
+
+    // 点击主按钮 → 顺序播放整张专辑。
+    await tester.tap(find.text('播放全部'));
+    await tester.pumpAndSettle();
+    expect(fakeMain.playCalls, greaterThanOrEqualTo(1));
+    expect(AppPlayerState.instance.currentIndex.value, 0);
+    expect(AppPlayerState.instance.currentSong.value?.title, '歌1');
   });
 
   testWidgets('点按曲目以整表为队列播放', (WidgetTester tester) async {
@@ -124,13 +147,13 @@ void main() {
     );
   });
 
-  testWidgets('顺序播放按钮按专辑顺序播放', (WidgetTester tester) async {
+  testWidgets('播放全部按钮按专辑顺序播放', (WidgetTester tester) async {
     await pumpDetail(tester, tracks: <FnTrack>[
       _track(1, trackNo: 1),
       _track(2, trackNo: 2),
     ]);
 
-    await tester.tap(find.byIcon(Icons.play_arrow));
+    await tester.tap(find.text('播放全部'));
     await tester.pumpAndSettle();
 
     expect(fakeMain.playCalls, greaterThanOrEqualTo(1));
@@ -240,6 +263,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // 头部变高后「参与创作的歌手」在首屏之外，先滚动到可见再断言。
+    await tester.dragUntilVisible(
+      find.text('参与创作的歌手'),
+      find.byType(ListView),
+      const Offset(0, -200),
+    );
+    await tester.pumpAndSettle();
     expect(find.text('参与创作的歌手'), findsOneWidget);
     expect(find.text('艺人A'), findsOneWidget);
     expect(find.text('艺人B'), findsOneWidget);

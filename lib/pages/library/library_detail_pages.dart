@@ -256,7 +256,11 @@ class _AlbumDetailPageState extends State<AlbumDetailPage> {
     );
   }
 
-  Widget _buildBody(BuildContext context) {
+  /// 仿 FNOS 网页版专辑头部：大封面 +「专辑」kicker + 名称 + 歌手 +
+  /// 发行年份/曲数 + 播放全部 / 随机播放操作。
+  ///
+  /// 元信息文案与网页一致：`共 N 首 · 发行于 YYYY`（年份缺失时只显示曲数）。
+  Widget _buildHeader(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme scheme = theme.colorScheme;
     final FnTrack? rep = _rawTracks.isNotEmpty ? _rawTracks.first : null;
@@ -265,67 +269,94 @@ class _AlbumDetailPageState extends State<AlbumDetailPage> {
       rep?.artists.map((FnArtist a) => a.name).join(' / '),
     );
     final int? year = widget.albumYear ?? rep?.year;
-    final String infoText = '${_tracks.length}首${year != null ? ' · $year' : ''}';
     final String? headerCover =
         widget.albumCoverId ?? rep?.album?.coverId ?? rep?.coverId;
+    final List<String> meta = <String>[
+      '共 ${_tracks.length} 首',
+      if (year != null) '发行于 $year',
+    ];
 
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          ArtworkWidget(
+            imageUrl: ApiClient.instance.coverUrl(headerCover),
+            size: 160,
+            borderRadius: BorderRadius.circular(24),
+            placeholderText: _displayName,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '专辑',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 2.4,
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _displayName,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            artistLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            meta.join(' · '),
+            style: TextStyle(
+              fontSize: 12,
+              color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 14),
+          // 操作行：播放全部（主按钮）+ 随机播放。
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              FilledButton.icon(
+                onPressed: _tracks.isEmpty ? null : _orderPlay,
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: const Text('播放全部'),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.shuffle),
+                tooltip: '随机播放',
+                visualDensity: VisualDensity.compact,
+                onPressed: _tracks.isEmpty ? null : _shufflePlay,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
     final List<FnArtist> artists = _participatingArtists();
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 48),
       children: <Widget>[
-        // 专辑头部：封面 + 名称 + 歌手 + 曲数/年份。
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              ArtworkWidget(
-                imageUrl: ApiClient.instance.coverUrl(headerCover),
-                size: 110,
-                borderRadius: BorderRadius.circular(12),
-                placeholderText: _displayName,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      _displayName,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      artistLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: theme.textTheme.bodyMedium?.color
-                            ?.withValues(alpha: 0.85),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      infoText,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: theme.textTheme.bodySmall?.color
-                            ?.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+        _buildHeader(context),
         Divider(
           height: 1,
           thickness: 0.5,
@@ -333,30 +364,13 @@ class _AlbumDetailPageState extends State<AlbumDetailPage> {
           endIndent: 16,
           color: Colors.grey.withValues(alpha: 0.2),
         ),
-        // 歌曲操作行：随机 / 顺序播放。
+        // 歌曲区标题（播放操作已在头部）。
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
-          child: Row(
-            children: <Widget>[
-              Text(
-                '歌曲',
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.shuffle),
-                tooltip: '随机播放',
-                visualDensity: VisualDensity.compact,
-                onPressed: _tracks.isEmpty ? null : _shufflePlay,
-              ),
-              IconButton(
-                icon: const Icon(Icons.play_arrow),
-                tooltip: '顺序播放',
-                visualDensity: VisualDensity.compact,
-                onPressed: _tracks.isEmpty ? null : _orderPlay,
-              ),
-            ],
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Text(
+            '歌曲',
+            style: theme.textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
         ),
         // 曲目列表：当前播放行高亮；封面/序号可切换。
