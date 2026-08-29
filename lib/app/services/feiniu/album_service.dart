@@ -46,6 +46,10 @@ class FnAlbumService {
     final Future<List<FnTrack>> Function(String)? override =
         fetchAlbumTracksOverride;
     if (override != null) return override(albumGuid);
+    if (albumGuid.trim().isEmpty) {
+      // 真实 FNOS 对空 guid 直接返回 100002；本地拦截，给出明确提示。
+      throw ApiException(100002, '专辑标识缺失，请返回刷新后重试');
+    }
     final dynamic data = await ApiClient.instance.getData(
       '/track/album-detail/list',
       query: <String, Object?>{'guid': albumGuid},

@@ -75,6 +75,9 @@ class _AlbumDetailPageState extends State<AlbumDetailPage> {
   bool _loading = true;
   String? _error;
 
+  /// 原始错误详情（ApiException 完整字符串），仅供排障显示。
+  String? _errorDetail;
+
   bool _showCovers = true;
   String _sortKey = 'trackNumber';
   bool _sortAscending = true;
@@ -104,9 +107,19 @@ class _AlbumDetailPageState extends State<AlbumDetailPage> {
           ascending: _sortAscending,
         );
         _error = null;
+        _errorDetail = null;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (!mounted) return;
+      setState(() {
+        if (e is ApiException) {
+          _error = e.friendlyMessage;
+          _errorDetail = e.toString();
+        } else {
+          _error = '加载失败，请检查网络后重试';
+          _errorDetail = '$e';
+        }
+      });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -201,8 +214,45 @@ class _AlbumDetailPageState extends State<AlbumDetailPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!))
+              ? _buildError()
               : _buildBody(context),
+    );
+  }
+
+  /// 错误态：友好提示 + 原始详情 + 重试。
+  Widget _buildError() {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(Icons.music_off_outlined, size: 48, color: scheme.outline),
+            const SizedBox(height: 12),
+            Text(
+              _error!,
+              style: theme.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            if (_errorDetail != null) ...<Widget>[
+              const SizedBox(height: 8),
+              Text(
+                _errorDetail!,
+                style: TextStyle(fontSize: 12, color: scheme.outline),
+                textAlign: TextAlign.center,
+              ),
+            ],
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh),
+              label: const Text('重试'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

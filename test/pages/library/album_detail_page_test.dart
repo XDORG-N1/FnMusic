@@ -168,6 +168,60 @@ void main() {
     expect(find.text('1'), findsOneWidget);
   });
 
+  testWidgets('服务端返回 100002 显示友好错误并可重试', (WidgetTester tester) async {
+    // 第一次请求返回 100002（无 message），重试后成功。
+    int calls = 0;
+    FnAlbumService.fetchAlbumTracksOverride = (String albumGuid) async {
+      calls++;
+      if (calls == 1) throw ApiException(100002, '');
+      return <FnTrack>[_track(1, trackNo: 1)];
+    };
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AlbumDetailPage(albumGuid: 'al', albumName: '专辑A'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 友好提示 + 原始详情（含错误码）+ 重试按钮。
+    expect(find.text('内容不存在或已被删除，请返回刷新后重试'), findsOneWidget);
+    expect(find.text('ApiException(100002): '), findsOneWidget);
+    expect(find.text('重试'), findsOneWidget);
+
+    // 点重试 → 第二次成功 → 渲染曲目。
+    await tester.tap(find.text('重试'));
+    await tester.pumpAndSettle();
+    expect(calls, 2);
+    expect(find.text('歌1'), findsOneWidget);
+    expect(find.text('内容不存在或已被删除，请返回刷新后重试'), findsNothing);
+  });
+
+  testWidgets('空专辑 guid 本地拦截并给出明确提示', (WidgetTester tester) async {
+    FnAlbumService.fetchAlbumTracksOverride = null;
+    await tester.pumpWidget(
+      const MaterialApp(home: AlbumDetailPage(albumGuid: '')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('专辑标识缺失，请返回刷新后重试'), findsOneWidget);
+    expect(find.text('重试'), findsOneWidget);
+  });
+
+  testWidgets('网络异常显示通用文案', (WidgetTester tester) async {
+    FnAlbumService.fetchAlbumTracksOverride =
+        (String albumGuid) async => throw Exception('boom');
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AlbumDetailPage(albumGuid: 'al', albumName: '专辑A'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('加载失败，请检查网络后重试'), findsOneWidget);
+    expect(find.text('Exception: boom'), findsOneWidget);
+  });
+
   testWidgets('参与创作的歌手去重渲染并可进入歌手详情', (WidgetTester tester) async {
     FnAlbumService.fetchAlbumTracksOverride = (String albumGuid) async =>
         <FnTrack>[
