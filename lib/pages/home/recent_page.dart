@@ -4,6 +4,8 @@ import '../../app/services/feiniu/api_client.dart';
 import '../../app/services/player_service.dart';
 import '../../app/state/song_state.dart';
 import '../../components/list/media_list_tile.dart';
+import '../../components/playlist/track_actions_menu.dart';
+import '../player/player_route.dart';
 
 /// 最近播放页：服务端播放历史列表，点按播放队列、长按移出历史。
 class RecentPage extends StatefulWidget {
@@ -52,6 +54,8 @@ class _RecentPageState extends State<RecentPage> {
     if (songs == null || songs.isEmpty) return;
     await FnPlayerService.instance.setQueue(songs, index: index);
     await FnPlayerService.instance.play();
+    if (!mounted) return;
+    openPlayerPage(context);
   }
 
   Future<void> _shufflePlay() async {
@@ -62,6 +66,8 @@ class _RecentPageState extends State<RecentPage> {
       index: songs.length > 1 ? _randomIndex(songs.length) : 0,
     );
     await FnPlayerService.instance.play();
+    if (!mounted) return;
+    openPlayerPage(context);
   }
 
   Future<void> _removeFromHistory(SongEntity song) async {
@@ -184,6 +190,7 @@ class _RecentPageState extends State<RecentPage> {
             imageUrl: ApiClient.instance.coverUrl(song.coverId),
             title: song.title,
             subtitle: song.artistDisplay,
+            trailing: TrackActionsMenu(track: song),
             onTap: () => _playAt(index),
             onLongPress: () => _removeFromHistory(song),
           );

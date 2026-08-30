@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -353,11 +354,19 @@ class StatsService {
     });
   }
 
+  /// 测试钩子：注入后取代 SQLite 落库（widget 测试无 ffi 数据库）。
+  @visibleForTesting
+  static Future<void> Function(String playlistId, String playlistTitle)?
+      recordPlaylistPlayOverride;
+
   /// 记录一次歌单播放。
   Future<void> recordPlaylistPlay({
     required String playlistId,
     required String playlistTitle,
   }) async {
+    final Future<void> Function(String, String)? override =
+        recordPlaylistPlayOverride;
+    if (override != null) return override(playlistId, playlistTitle);
     final db = await DbHelper.instance.database;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     await db.transaction((txn) async {

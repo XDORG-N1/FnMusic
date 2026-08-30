@@ -5,6 +5,8 @@ import '../../app/services/player_service.dart';
 import '../../app/state/song_state.dart';
 import '../../app/utils/natural_sort.dart';
 import '../../components/list/media_list_tile.dart';
+import '../../components/playlist/track_actions_menu.dart';
+import '../player/player_route.dart';
 
 /// 全部歌曲：分页加载 + 自然排序。
 class SongsPage extends StatefulWidget {
@@ -46,12 +48,14 @@ class _SongsPageState extends State<SongsPage> {
     }
   }
 
-  /// 点按歌曲：以当前排序结果作为队列，从该曲开始播放。
+  /// 点按歌曲：以当前排序结果作为队列，从该曲开始播放并进入播放器。
   Future<void> _playAt(int index) async {
     final List<SongEntity> songs = _sorted;
     if (songs.isEmpty) return;
     await FnPlayerService.instance.setQueue(songs, index: index);
     await FnPlayerService.instance.play();
+    if (!mounted) return;
+    openPlayerPage(context);
   }
 
   Future<void> _loadMore() async {
@@ -125,9 +129,16 @@ class _SongsPageState extends State<SongsPage> {
                       .coverUrl(song.coverId ?? song.albumGuid),
                   title: song.title,
                   subtitle: song.artistDisplay,
-                  trailing: Text(
-                    song.durationDisplay,
-                    style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        song.durationDisplay,
+                        style: TextStyle(
+                            color: scheme.onSurfaceVariant, fontSize: 13),
+                      ),
+                      TrackActionsMenu(track: song),
+                    ],
                   ),
                   onTap: () => _playAt(index),
                 );

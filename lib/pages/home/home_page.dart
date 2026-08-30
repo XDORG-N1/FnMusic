@@ -21,6 +21,7 @@ import '../library/artists_page.dart';
 import '../library/genres_page.dart';
 import '../library/library_detail_pages.dart';
 import '../library/playlists_page.dart';
+import '../player/player_route.dart';
 import '../songs/songs_page.dart';
 import 'favorite_page.dart';
 import 'recent_page.dart';
@@ -319,15 +320,19 @@ class _HomePageState extends State<HomePage> {
     if (_roamId.isEmpty) {
       await _player.setQueue(<SongEntity>[song]);
       await _player.play();
-      return;
+    } else {
+      await _player.playRoamSong(song, deviceId, _roamId);
     }
-    await _player.playRoamSong(song, deviceId, _roamId);
+    if (!mounted) return;
+    openPlayerPage(context);
   }
 
   Future<void> _playList(List<SongEntity> songs, {int index = 0}) async {
     if (songs.isEmpty) return;
     await _player.setQueue(songs, index: index.clamp(0, songs.length - 1));
     await _player.play();
+    if (!mounted) return;
+    openPlayerPage(context);
   }
 
   Future<void> _playRecent() => _playList(_recentSongs);

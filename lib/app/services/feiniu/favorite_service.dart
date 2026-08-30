@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'api_client.dart';
 import 'api_models.dart';
 
@@ -9,6 +11,18 @@ class FeiNiuFavoriteService {
   FeiNiuFavoriteService._();
 
   static final FeiNiuFavoriteService instance = FeiNiuFavoriteService._();
+
+  /// 测试钩子：注入后取代真实网络请求（widget 测试用）。
+  @visibleForTesting
+  static Future<List<FnTrack>> Function()? fetchFavoriteTracksOverride;
+
+  /// 测试钩子：注入后取代真实网络请求（widget 测试用）。
+  @visibleForTesting
+  static Future<void> Function(String trackGuid)? favoriteOverride;
+
+  /// 测试钩子：注入后取代真实网络请求（widget 测试用）。
+  @visibleForTesting
+  static Future<void> Function(String trackGuid)? unfavoriteOverride;
 
   final ApiClient _api = ApiClient.instance;
 
@@ -23,6 +37,9 @@ class FeiNiuFavoriteService {
   /// 真实 FNOS 返回分页包裹 `{list, total}`；旧 mock/简化响应直接是数组。
   /// 两种形状都兼容解析。
   Future<List<FnTrack>> fetchFavoriteTracks() async {
+    final Future<List<FnTrack>> Function()? override =
+        fetchFavoriteTracksOverride;
+    if (override != null) return override();
     final Object? data = await _api.getData('/favorite-track/list');
     final List<Object?> raw = _listOf(data);
     return raw
@@ -49,6 +66,8 @@ class FeiNiuFavoriteService {
 
   /// 收藏歌曲。
   Future<void> favorite(String trackGuid) async {
+    final Future<void> Function(String)? override = favoriteOverride;
+    if (override != null) return override(trackGuid);
     await _api.postData(
       '/favorite-track/create',
       body: <String, Object?>{'trackGuid': trackGuid},
@@ -57,6 +76,8 @@ class FeiNiuFavoriteService {
 
   /// 取消收藏。
   Future<void> unfavorite(String trackGuid) async {
+    final Future<void> Function(String)? override = unfavoriteOverride;
+    if (override != null) return override(trackGuid);
     await _api.postData(
       '/favorite-track/delete',
       body: <String, Object?>{'trackGuid': trackGuid},

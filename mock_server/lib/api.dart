@@ -485,25 +485,39 @@ Future<Response> _playlistEdit(Request req) async {
 }
 
 Future<Response> _playlistAddTrack(Request req) async {
+  // 与真实 FNOS 一致：body 为 {guid, trackGUIDs:[...]}（数组）。
   final Map<String, Object?> body = await _jsonBody(req);
   final MockPlaylist? playlist = MockStore.instance.playlists
-      .where((MockPlaylist p) => p.guid == body['playlistGuid']?.toString())
+      .where((MockPlaylist p) => p.guid == body['guid']?.toString())
       .firstOrNull;
-  final String? trackGuid = body['trackGuid']?.toString();
-  if (playlist == null || trackGuid == null) return _err(404, '歌单或曲目不存在');
-  if (!playlist.trackGuids.contains(trackGuid)) {
-    playlist.trackGuids.add(trackGuid);
+  if (playlist == null) return _err(404, '歌单不存在');
+  final List<Object?>? trackGuids = body['trackGUIDs'] as List<Object?>?;
+  if (trackGuids == null || trackGuids.isEmpty) {
+    return _err(400, '缺少曲目标识');
+  }
+  for (final Object? guid in trackGuids) {
+    final String? trackGuid = guid?.toString();
+    if (trackGuid == null || trackGuid.isEmpty) continue;
+    if (!playlist.trackGuids.contains(trackGuid)) {
+      playlist.trackGuids.add(trackGuid);
+    }
   }
   return _json(<String, Object?>{});
 }
 
 Future<Response> _playlistRemoveTrack(Request req) async {
+  // 与真实 FNOS 一致：body 为 {guid, trackGUIDs:[...]}（数组）。
   final Map<String, Object?> body = await _jsonBody(req);
   final MockPlaylist? playlist = MockStore.instance.playlists
-      .where((MockPlaylist p) => p.guid == body['playlistGuid']?.toString())
+      .where((MockPlaylist p) => p.guid == body['guid']?.toString())
       .firstOrNull;
   if (playlist == null) return _err(404, '歌单不存在');
-  playlist.trackGuids.remove(body['trackGuid']?.toString());
+  final List<Object?>? trackGuids = body['trackGUIDs'] as List<Object?>?;
+  if (trackGuids != null) {
+    for (final Object? guid in trackGuids) {
+      playlist.trackGuids.remove(guid?.toString());
+    }
+  }
   return _json(<String, Object?>{});
 }
 

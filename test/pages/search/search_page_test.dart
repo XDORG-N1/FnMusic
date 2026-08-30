@@ -75,7 +75,12 @@ void main() {
   late FakeEngine fakeMain;
 
   setUp(() {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
+    // 关闭播放器页动画：点歌会跳转播放器页，动态渐变与旋转封面均为
+    // `..repeat()` 无限动画，会让 pumpAndSettle 超时。
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'dynamic_gradient_enabled': false,
+      'player_rotate_cover': false,
+    });
     ApiClient.instance.setServerUrl('http://test');
     StreamCacheService.instance.enabled = false;
     fakeMain = FakeEngine();

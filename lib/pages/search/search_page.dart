@@ -4,7 +4,9 @@ import '../../app/services/feiniu/feiniu_services.dart';
 import '../../app/services/player_service.dart';
 import '../../app/state/song_state.dart';
 import '../../components/list/media_list_tile.dart';
+import '../../components/playlist/track_actions_menu.dart';
 import '../library/library_detail_pages.dart';
+import '../player/player_route.dart';
 
 /// 全局搜索（歌曲 / 专辑 / 歌手）。
 class SearchPage extends StatefulWidget {
@@ -115,13 +117,23 @@ class _SearchPageState extends State<SearchPage> {
                 imageUrl: ApiClient.instance.coverUrl(song.coverId),
                 title: song.title,
                 subtitle: song.artistDisplay,
-                trailing: Text(song.durationDisplay),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(song.durationDisplay),
+                    TrackActionsMenu(track: song),
+                  ],
+                ),
                 onTap: () {
                   final List<SongEntity> songs = _tracks;
                   if (songs.isEmpty) return;
                   FnPlayerService.instance
                       .setQueue(songs, index: _tracks.indexOf(song))
-                      .then((_) => FnPlayerService.instance.play());
+                      .then((_) => FnPlayerService.instance.play())
+                      .then((_) {
+                        if (!context.mounted) return;
+                        openPlayerPage(context);
+                      });
                 },
               )),
         ],

@@ -226,4 +226,121 @@ void main() {
       expect(currentOf(dataOf(b1))['track'], currentOf(dataOf(a1))['track']);
     });
   });
+
+  group('歌单', () {
+    late String token;
+
+    setUp(() async {
+      token = await loginToken();
+    });
+
+    test('创建 → 加入曲目 → 详情含曲目 → 移除后剩 1 首', () async {
+      // 创建歌单。
+      final (int, Map<String, Object?>) created = await call(
+        'POST',
+        '/playlist/create',
+        headers: auth(token),
+        body: <String, Object?>{'name': '测试歌单'},
+      );
+      expect(created.$2['code'], 0);
+      final String guid = dataOf(created)['guid']! as String;
+      expect(guid, isNotEmpty);
+
+      // 加入两首曲目（trackGUIDs 数组）。
+      final (int, Map<String, Object?>) added = await call(
+        'POST',
+        '/playlist/add-track',
+        headers: auth(token),
+        body: <String, Object?>{
+          'guid': guid,
+          'trackGUIDs': <String>['trk_001', 'trk_002'],
+        },
+      );
+      expect(added.$2['code'], 0);
+
+      // 歌单详情返回两首（{list, total}）。
+      final (int, Map<String, Object?>) detail = await call(
+        'GET',
+        '/track/playlist-detail/list?playlistGUID=$guid&page=1&size=100',
+        headers: auth(token),
+      );
+      expect(detail.$2['code'], 0);
+      final Map<String, Object?> detailData = dataOf(detail);
+      expect((detailData['list']! as List<Object?>).length, 2);
+      expect(detailData['total'], 2);
+
+      // 歌单列表 trackCount 正确。
+      final (int, Map<String, Object?>) all = await call(
+        'GET',
+        '/playlist/list',
+        headers: auth(token),
+      );
+      final Map<String, Object?> mine = (dataOf(all)['list']! as List<Object?>)
+          .whereType<Map<Object?, Object?>>()
+          .map((Map<Object?, Object?> m) => m.cast<String, Object?>())
+          .firstWhere((Map<String, Object?> p) => p['guid'] == guid);
+      expect(mine['name'], '测试歌单');
+      expect(mine['trackCount'], 2);
+
+      // 移除一首 → 剩一首。
+      final (int, Map<String, Object?>) removed = await call(
+        'POST',
+        '/playlist/remove-track',
+        headers: auth(token),
+        body: <String, Object?>{
+          'guid': guid,
+          'trackGUIDs': <String>['trk_001'],
+        },
+      );
+      expect(removed.$2['code'], 0);
+
+      final (int, Map<String, Object?>) after = await call(
+        'GET',
+        '/track/playlist-detail/list?playlistGUID=$guid&page=1&size=100',
+        headers: auth(token),
+      );
+      expect(dataOf(after)['total'], 1);
+    });
+
+    test('缺 trackGUIDs → 400', () async {
+      final (int, Map<String, Object?>) created = await call(
+        'POST',
+        '/playlist/create',
+        headers: auth(token),
+        body: <String, Object?>{'name': '空歌单'},
+      );
+      final String guid = dataOf(created)['guid']! as String;
+
+      final (int, Map<String, Object?>) bad = await call(
+        'POST',
+        '/playlist/add-track',
+        headers: auth(token),
+        body: <String, Object?>{'guid': guid},
+      );
+      // 与真实 FNOS 一致：HTTP 200，业务错误码在 body.code。
+      expect(bad.$1, 200);
+      expect(bad.$2['code'], 400);
+    });
+
+    test('移除不在歌单中的曲目不报错', () async {
+      final (int, Map<String, Object?>) created = await call(
+        'POST',
+        '/playlist/create',
+        headers: auth(token),
+        body: <String, Object?>{'name': '测试歌单2'},
+      );
+      final String guid = dataOf(created)['guid']! as String;
+
+      final (int, Map<String, Object?>) removed = await call(
+        'POST',
+        '/playlist/remove-track',
+        headers: auth(token),
+        body: <String, Object?>{
+          'guid': guid,
+          'trackGUIDs': <String>['trk_999'],
+        },
+      );
+      expect(removed.$2['code'], 0);
+    });
+  });
 }

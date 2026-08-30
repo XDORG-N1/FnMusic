@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../app/services/feiniu/feiniu_services.dart';
@@ -8,6 +10,8 @@ import '../../app/utils/natural_sort.dart';
 import '../../components/common/artwork_widget.dart';
 import '../../components/list/media_list_tile.dart';
 import '../../components/list/sort_sheet.dart';
+import '../../components/playlist/track_actions_menu.dart';
+import '../player/player_route.dart';
 
 /// 网页版 /music/genres 的渐变卡片配色（[color, 近黑]），按索引循环。
 const List<List<Color>> _genreGradients = <List<Color>>[
@@ -362,9 +366,12 @@ class _GenreDetailPageState extends State<GenreDetailPage> {
 
   void _playQueue(int index) {
     if (_tracks.isEmpty) return;
-    FnPlayerService.instance
+    unawaited(FnPlayerService.instance
         .setQueue(_tracks, index: index)
-        .then((_) => FnPlayerService.instance.play());
+        .then((_) => FnPlayerService.instance.play())
+        .then((_) {
+      if (mounted) openPlayerPage(context);
+    }));
   }
 
   void _playAll() => _playQueue(0);
@@ -395,7 +402,13 @@ class _GenreDetailPageState extends State<GenreDetailPage> {
                           imageUrl: ApiClient.instance.coverUrl(song.coverId),
                           title: song.title,
                           subtitle: song.artistDisplay,
-                          trailing: Text(song.durationDisplay),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Text(song.durationDisplay),
+                              TrackActionsMenu(track: song),
+                            ],
+                          ),
                           selected: isCurrent,
                           onTap: () => _playQueue(index - 1),
                         );

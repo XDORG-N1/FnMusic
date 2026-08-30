@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../app/services/feiniu/feiniu_services.dart';
@@ -8,6 +10,8 @@ import '../../app/utils/natural_sort.dart';
 import '../../components/common/artwork_widget.dart';
 import '../../components/list/media_list_tile.dart';
 import '../../components/list/sort_sheet.dart';
+import '../../components/playlist/track_actions_menu.dart';
+import '../player/player_route.dart';
 
 /// 主歌手标签：`'A / B'` → `'A 等'`；单歌手原样；空 → `'未知歌手'`。
 String primaryArtistLabel(String? artistDisplay) {
@@ -185,9 +189,12 @@ class _AlbumDetailPageState extends State<AlbumDetailPage> {
 
   void _playQueue(List<SongEntity> songs, int index) {
     if (songs.isEmpty) return;
-    FnPlayerService.instance
+    unawaited(FnPlayerService.instance
         .setQueue(songs, index: index)
-        .then((_) => FnPlayerService.instance.play());
+        .then((_) => FnPlayerService.instance.play())
+        .then((_) {
+      if (mounted) openPlayerPage(context);
+    }));
   }
 
   void _shufflePlay() {
@@ -384,7 +391,13 @@ class _AlbumDetailPageState extends State<AlbumDetailPage> {
               return MediaListTile(
                 title: song.title,
                 subtitle: song.artistDisplay,
-                trailing: Text(song.durationDisplay),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(song.durationDisplay),
+                    TrackActionsMenu(track: song),
+                  ],
+                ),
                 selected: isCurrent,
                 leadingWidget: _showCovers
                     ? ArtworkWidget(
@@ -544,13 +557,22 @@ class _ArtistDetailPageState extends State<ArtistDetailPage> {
                       imageUrl: ApiClient.instance.coverUrl(song.coverId),
                       title: song.title,
                       subtitle: song.albumDisplay,
-                      trailing: Text(song.durationDisplay),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Text(song.durationDisplay),
+                          TrackActionsMenu(track: song),
+                        ],
+                      ),
                       onTap: () {
                         final List<SongEntity> songs = _tracks;
                         if (songs.isEmpty) return;
-                        FnPlayerService.instance
+                        unawaited(FnPlayerService.instance
                             .setQueue(songs, index: index)
-                            .then((_) => FnPlayerService.instance.play());
+                            .then((_) => FnPlayerService.instance.play())
+                            .then((_) {
+                          if (context.mounted) openPlayerPage(context);
+                        }));
                       },
                     );
                   },

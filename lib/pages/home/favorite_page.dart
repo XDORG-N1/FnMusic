@@ -5,6 +5,8 @@ import '../../app/services/feiniu/favorite_service.dart';
 import '../../app/services/player_service.dart';
 import '../../app/state/song_state.dart';
 import '../../components/list/media_list_tile.dart';
+import '../../components/playlist/track_actions_menu.dart';
+import '../player/player_route.dart';
 
 /// 收藏页（简化移植）：服务端收藏歌曲列表，点按播放队列、长按取消收藏。
 class FavoritePage extends StatefulWidget {
@@ -54,6 +56,8 @@ class _FavoritePageState extends State<FavoritePage> {
     if (songs == null || songs.isEmpty) return;
     await FnPlayerService.instance.setQueue(songs, index: index);
     await FnPlayerService.instance.play();
+    if (!mounted) return;
+    openPlayerPage(context);
   }
 
   Future<void> _shufflePlay() async {
@@ -66,6 +70,8 @@ class _FavoritePageState extends State<FavoritePage> {
           : 0,
     );
     await FnPlayerService.instance.play();
+    if (!mounted) return;
+    openPlayerPage(context);
   }
 
   Future<void> _unfavorite(SongEntity song) async {
@@ -191,6 +197,7 @@ class _FavoritePageState extends State<FavoritePage> {
             imageUrl: ApiClient.instance.coverUrl(song.coverId),
             title: song.title,
             subtitle: song.artistDisplay,
+            trailing: TrackActionsMenu(track: song),
             onTap: () => _playAt(index),
             onLongPress: () => _unfavorite(song),
           );

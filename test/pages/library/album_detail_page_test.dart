@@ -46,7 +46,12 @@ void main() {
   late FakeEngine fakeMain;
 
   setUp(() {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
+    // 关闭播放器页动画：播放会跳转播放器页，动态渐变与旋转封面均为
+    // `..repeat()` 无限动画，会让 pumpAndSettle 超时。
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'dynamic_gradient_enabled': false,
+      'player_rotate_cover': false,
+    });
     ApiClient.instance.setServerUrl('http://test');
     StreamCacheService.instance.enabled = false;
     fakeMain = FakeEngine();
@@ -167,7 +172,11 @@ void main() {
       _track(2, trackNo: 2), // 歌2
     ]);
 
-    await tester.tap(find.byIcon(Icons.more_vert));
+    // 行尾曲目「更多」菜单也是 more_vert，需定位 AppBar 的排序入口。
+    await tester.tap(find.descendant(
+      of: find.byType(AppBar),
+      matching: find.byIcon(Icons.more_vert),
+    ));
     await tester.pumpAndSettle();
 
     // 排序方式默认轨道号，先选「歌曲名称」→ 歌1 在歌2 上方（轨道号 1<2 已同序）。

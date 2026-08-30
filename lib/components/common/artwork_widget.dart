@@ -28,7 +28,11 @@ class ArtworkWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double edge = size ?? 48;
+    // 防御：非有限/非法尺寸（如 double.infinity）回退默认 48，避免占位
+    // 字号计算出 infinity 崩溃。
+    final double? s = size;
+    final double edge =
+        (s == null || !s.isFinite || s <= 0) ? 48 : s;
     final BorderRadius radius =
         borderRadius ?? BorderRadius.circular(edge * 0.22);
     final ColorScheme scheme = Theme.of(context).colorScheme;
